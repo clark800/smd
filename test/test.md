@@ -1,6 +1,8 @@
 Title
 =====
-Paragraph
+Paragraph ``code``
+
+This is ``not code
 
 ![Alt Text](image.png)
 

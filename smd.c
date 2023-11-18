@@ -61,6 +61,21 @@ static char* processImage(char* start, FILE* output) {
     return hrefEnd + 1;
 }
 
+static char* processCode(char* start, FILE* output) {
+    char delimiter[] = "```";
+    size_t span = strspn(start, "`");
+    size_t length = span < 3 ? span : 3;
+    delimiter[length] = '\0';
+    char* code = start + length;
+    char* end = strstr(code, delimiter);
+    if (end == NULL)
+        return start;
+    fputs("<code>", output);
+    fwrite(code, sizeof(char), end - code, output);
+    fputs("</code>", output);
+    return end + length;
+}
+
 static char* processBackslash(char* start, FILE* output) {
     char* p = start;
     fputc(*p++, output);
@@ -72,13 +87,14 @@ static char* processBackslash(char* start, FILE* output) {
 static void processLine(char* line, FILE* output) {
     char* p = line;
     while (*p != 0) {
-        char* brk = strpbrk(p, "![\\");
+        char* brk = strpbrk(p, "`![\\");
         if (brk == NULL) {
             fputs(p, output);
             return;
         }
         fwrite(p, sizeof(char), brk - p, output);
         switch (*brk) {
+            case '`': p = processCode(brk, output); break;
             case '[': p = processLink(brk, output); break;
             case '!': p = processImage(brk, output); break;
             case '\\': p = processBackslash(brk, output); break;
