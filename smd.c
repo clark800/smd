@@ -125,18 +125,6 @@ static void processHeading(char* line, FILE* output) {
     fputs(closeTag, output);
 }
 
-static void processParagraph(FILE* input, FILE* output) {
-    processLine(LINE, output);
-    while(!feof(input) && !isBlank(readLine(input)))
-        processLine(LINE, output);
-}
-
-static void processHTML(FILE* input, FILE* output) {
-    fputs(LINE, output);
-    while(!feof(input) && !isBlank(readLine(input)))
-        fputs(LINE, output);
-}
-
 static void processCodeFence(char* line, FILE* input, FILE* output) {
     char delimiter[] = "````````````````";
     size_t length = strspn(line, "`");
@@ -145,15 +133,35 @@ static void processCodeFence(char* line, FILE* input, FILE* output) {
         delimiter[length] = '\0';
     char* language = chomp(line + length + whitespace);
     if (language[0] != '\0') {
-        fputs("<code class=\"language-", output);
+        fputs("<pre><code class=\"language-", output);
         fputs(language, output);
         fputs("\">\n", output);
     } else {
-        fputs("<code>\n", output);
+        fputs("<pre><code>\n", output);
     }
     while(!feof(input) && !startsWith(readLine(input), delimiter))
         fputs(LINE, output);
-    fputs("</code>\n", output);
+    fputs("</code></pre>\n", output);
+}
+
+static void processParagraph(FILE* input, FILE* output) {
+    fputs("<p>\n", output);
+    processLine(LINE, output);
+    while(!feof(input) && !isBlank(readLine(input))) {
+        if (startsWith(LINE, "```")) {
+            fputs("</p>\n", output);
+            processCodeFence(LINE, input, output);
+            return;
+        }
+        processLine(LINE, output);
+    }
+    fputs("</p>\n", output);
+}
+
+static void processHTML(FILE* input, FILE* output) {
+    fputs(LINE, output);
+    while(!feof(input) && !isBlank(readLine(input)))
+        fputs(LINE, output);
 }
 
 static void processBlock(FILE* input, FILE* output) {
@@ -162,13 +170,11 @@ static void processBlock(FILE* input, FILE* output) {
         if (feof(input))
             break;
         size_t indent = strspn(LINE, " \t");
-        if (LINE[0] == '<') {
-            processHTML(input, output);
+        if (LINE[indent] == '\n') {
         } else if (LINE[0] == '#') {
             processHeading(LINE, output);
-        } else if (LINE[0] == '-') {
+        } else if (startsWith(LINE, "---")) {
             fputs("<hr>\n", output);
-        } else if (LINE[indent] == '\n') {
         } else if (startsWith(LINE, "```")) {
             processCodeFence(LINE, input, output);
         } else {
@@ -185,9 +191,7 @@ static void processBlock(FILE* input, FILE* output) {
                 fputs("</h2>\n", output);
                 readLine(input);
             } else {
-                fputs("<p>\n", output);
                 processParagraph(input, output);
-                fputs("</p>\n", output);
             }
         }
     }

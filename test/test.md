@@ -21,3 +21,8 @@ Paragraph [link](page.html)
 }
 
 ```
+
+Paragraph
+```
+fenced
+```
