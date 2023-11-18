@@ -25,8 +25,38 @@ static char* readLine(FILE* input) {
     return LINE;
 }
 
+static char* processLink(char* start, FILE* output) {
+    char* title = start + 1;
+    char* titleEnd = strchr(title, ']');
+    if (titleEnd == NULL || titleEnd == title || titleEnd[1] != '(')
+        return start;
+    char* href = titleEnd + 2;
+    char* hrefEnd = strchr(href, ')');
+    if (hrefEnd == NULL || hrefEnd == href)
+        return start;
+    fputs("<a href=\"", output);
+    fwrite(href, sizeof(char), hrefEnd - href, output);
+    fputs("\">", output);
+    fwrite(title, sizeof(char), titleEnd - title, output);
+    fputs("</a>", output);
+    return hrefEnd + 1;
+}
+
 static void processLine(char* line, FILE* output) {
-    fputs(line, output);
+    char* p = line;
+    while (*p != 0) {
+        char* brk = strpbrk(p, "[");
+        if (brk == NULL) {
+            fputs(p, output);
+            return;
+        }
+        fwrite(p, sizeof(char), brk - p, output);
+        switch (*brk) {
+            case '[': p = processLink(brk, output); break;
+        }
+        if (p == brk)
+            fputc(*p++, output);
+    }
 }
 
 static void processParagraph(FILE* input, FILE* output) {

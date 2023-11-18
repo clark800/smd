@@ -5,4 +5,4 @@ Paragraph
 
 ---
 
-Paragraph
+Paragraph [link](page.html)
