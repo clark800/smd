@@ -26,7 +26,7 @@ static void processLine(char* line, FILE* output) {
 }
 
 static void processParagraph(FILE* input, FILE* output) {
-    fputs(LINE, output);
+    processLine(LINE, output);
     while(!feof(input)) {
         readLine(input);
         size_t indent = strspn(LINE, " \t");
