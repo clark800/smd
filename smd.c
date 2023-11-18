@@ -21,6 +21,10 @@ static char* readLine(FILE* input) {
     return LINE;
 }
 
+static void processLine(char* line, FILE* output) {
+    fputs(line, output);
+}
+
 static void processParagraph(FILE* input, FILE* output) {
     fputs(LINE, output);
     while(!feof(input)) {
@@ -28,12 +32,11 @@ static void processParagraph(FILE* input, FILE* output) {
         size_t indent = strspn(LINE, " \t");
         if (LINE[indent] == '\n')
             return;
-        fputs(LINE, output);
+        processLine(LINE, output);
     }
 }
 
 static void processBlock(FILE* input, FILE* output) {
-
     while(!feof(input)) {
         readLine(input);
         size_t indent = strspn(LINE, " \t");
@@ -47,12 +50,12 @@ static void processBlock(FILE* input, FILE* output) {
             ungetc(next, input);
             if (next == '=') {
                 fputs("<h1>", output);
-                fputs(chomp(LINE), output);
+                processLine(chomp(LINE), output);
                 fputs("</h1>\n", output);
                 readLine(input);
             } else if (next == '-') {
                 fputs("<h2>", output);
-                fputs(chomp(LINE), output);
+                processLine(chomp(LINE), output);
                 fputs("</h2>\n", output);
                 readLine(input);
             } else {
