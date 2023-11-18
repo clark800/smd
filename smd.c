@@ -79,6 +79,23 @@ static void processLine(char* line, FILE* output) {
     }
 }
 
+static void processHeading(char* line, FILE* output) {
+    size_t level = strspn(line, "#");
+    size_t indent = strspn(line + level, " \t");
+    char* title = line + level + indent;
+    if (level > 6 || title[0] == '\n') {
+        fputs(LINE, output);
+        return;
+    }
+    char openTag[] = "<h0>";
+    char closeTag[] = "</h0>\n";
+    openTag[2] = '0' + level;
+    closeTag[3] = '0' + level;
+    fputs(openTag, output);
+    fputs(chomp(title), output);
+    fputs(closeTag, output);
+}
+
 static void processParagraph(FILE* input, FILE* output) {
     processLine(LINE, output);
     while(!feof(input) && !isBlank(readLine(input)))
@@ -97,6 +114,8 @@ static void processBlock(FILE* input, FILE* output) {
         size_t indent = strspn(LINE, " \t");
         if (LINE[0] == '<') {
             processHTML(input, output);
+        } else if (LINE[0] == '#') {
+            processHeading(LINE, output);
         } else if (LINE[0] == '-') {
             fputs("<hr>\n", output);
         } else if (LINE[indent] == '\n') {
