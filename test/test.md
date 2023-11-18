@@ -12,3 +12,12 @@ This is ``not code
 
 ## Section
 Paragraph [link](page.html)
+
+```json
+
+{
+    "md": "[link](page.html)",
+    "z": 123
+}
+
+```

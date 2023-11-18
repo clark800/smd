@@ -11,6 +11,10 @@ static char* chomp(char* line) {
     return line;
 }
 
+static int startsWith(char* string, char* prefix) {
+    return strncmp(prefix, string, strlen(prefix)) == 0;
+}
+
 static int isBlank(char* line) {
     return line[strspn(line, " \t")] == '\n';
 }
@@ -133,9 +137,30 @@ static void processHTML(FILE* input, FILE* output) {
         fputs(LINE, output);
 }
 
+static void processCodeFence(char* line, FILE* input, FILE* output) {
+    char delimiter[] = "````````````````";
+    size_t length = strspn(line, "`");
+    size_t whitespace = strspn(line + length, " \t");
+    if (length < sizeof(delimiter))
+        delimiter[length] = '\0';
+    char* language = chomp(line + length + whitespace);
+    if (language[0] != '\0') {
+        fputs("<code class=\"language-", output);
+        fputs(language, output);
+        fputs("\">\n", output);
+    } else {
+        fputs("<code>\n", output);
+    }
+    while(!feof(input) && !startsWith(readLine(input), delimiter))
+        fputs(LINE, output);
+    fputs("</code>\n", output);
+}
+
 static void processBlock(FILE* input, FILE* output) {
-    while(!feof(input)) {
+    while(1) {
         readLine(input);
+        if (feof(input))
+            break;
         size_t indent = strspn(LINE, " \t");
         if (LINE[0] == '<') {
             processHTML(input, output);
@@ -144,6 +169,8 @@ static void processBlock(FILE* input, FILE* output) {
         } else if (LINE[0] == '-') {
             fputs("<hr>\n", output);
         } else if (LINE[indent] == '\n') {
+        } else if (startsWith(LINE, "```")) {
+            processCodeFence(LINE, input, output);
         } else {
             int next = fgetc(input);
             ungetc(next, input);
