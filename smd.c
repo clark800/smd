@@ -4,6 +4,11 @@
 
 static char LINE[4096];
 
+static int peek(FILE* input) {
+    int c = fgetc(input);
+    return ungetc(c, input);
+}
+
 static char* chomp(char* line) {
     size_t length = strlen(line);
     if (line[length - 1] == '\n')
@@ -151,11 +156,11 @@ static void processCodeFence(char* line, FILE* input, FILE* output) {
         fputs(language, output);
         fputs("\">\n", output);
     } else {
-        fputs("<pre><code>\n", output);
+        fputs("<pre>\n<code>\n", output);
     }
     while(!feof(input) && !startsWith(readLine(input), delimiter))
         fputs(LINE, output);
-    fputs("</code></pre>\n", output);
+    fputs("</code>\n</pre>\n", output);
 }
 
 static void processParagraph(FILE* input, FILE* output) {
@@ -178,6 +183,18 @@ static void processHTML(FILE* input, FILE* output) {
         fputs(LINE, output);
 }
 
+static void processBlockquote(char* line, FILE* input, FILE* output) {
+    fputs("<blockquote>\n", output);
+    do {
+        int offset = line[1] == ' ' ? 2 : 1;
+        processLine(line + offset, output);
+        if (peek(input) != '>')
+            break;
+        readLine(input);
+    } while(!feof(input));
+    fputs("</blockquote>\n", output);
+}
+
 static void processBlock(FILE* input, FILE* output) {
     while(1) {
         readLine(input);
@@ -187,13 +204,14 @@ static void processBlock(FILE* input, FILE* output) {
         if (LINE[indent] == '\n') {
         } else if (LINE[0] == '#') {
             processHeading(LINE, output);
+        } else if (LINE[0] == '>') {
+            processBlockquote(LINE, input, output);
         } else if (startsWith(LINE, "---")) {
             fputs("<hr>\n", output);
         } else if (startsWith(LINE, "```")) {
             processCodeFence(LINE, input, output);
         } else {
-            int next = fgetc(input);
-            ungetc(next, input);
+            int next = peek(input);
             if (next == '=') {
                 fputs("<h1>", output);
                 processLine(chomp(LINE), output);
