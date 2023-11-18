@@ -11,6 +11,10 @@ static char* chomp(char* line) {
     return line;
 }
 
+static int isBlank(char* line) {
+    return line[strspn(line, " \t")] == '\n';
+}
+
 static char* readLine(FILE* input) {
     LINE[sizeof(LINE) - 1] = '\n';
     fgets(LINE, sizeof(LINE), input);
@@ -27,13 +31,14 @@ static void processLine(char* line, FILE* output) {
 
 static void processParagraph(FILE* input, FILE* output) {
     processLine(LINE, output);
-    while(!feof(input)) {
-        readLine(input);
-        size_t indent = strspn(LINE, " \t");
-        if (LINE[indent] == '\n')
-            return;
+    while(!feof(input) && !isBlank(readLine(input)))
         processLine(LINE, output);
-    }
+}
+
+static void processHTML(FILE* input, FILE* output) {
+    fputs(LINE, output);
+    while(!feof(input) && !isBlank(readLine(input)))
+        fputs(LINE, output);
 }
 
 static void processBlock(FILE* input, FILE* output) {
@@ -41,7 +46,7 @@ static void processBlock(FILE* input, FILE* output) {
         readLine(input);
         size_t indent = strspn(LINE, " \t");
         if (LINE[0] == '<') {
-            processParagraph(input, output); // todo: literal mode
+            processHTML(input, output);
         } else if (LINE[0] == '-') {
             fputs("<hr>\n", output);
         } else if (LINE[indent] == '\n') {
