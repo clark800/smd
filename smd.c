@@ -42,10 +42,29 @@ static char* processLink(char* start, FILE* output) {
     return hrefEnd + 1;
 }
 
+static char* processImage(char* start, FILE* output) {
+    if (start[1] != '[')
+        return start;
+    char* title = start + 2;
+    char* titleEnd = strchr(title, ']');
+    if (titleEnd == NULL || titleEnd == title || titleEnd[1] != '(')
+        return start;
+    char* href = titleEnd + 2;
+    char* hrefEnd = strchr(href, ')');
+    if (hrefEnd == NULL || hrefEnd == href)
+        return start;
+    fputs("<img src=\"", output);
+    fwrite(href, sizeof(char), hrefEnd - href, output);
+    fputs(" alt=\"", output);
+    fwrite(title, sizeof(char), titleEnd - title, output);
+    fputs("\">", output);
+    return hrefEnd + 1;
+}
+
 static void processLine(char* line, FILE* output) {
     char* p = line;
     while (*p != 0) {
-        char* brk = strpbrk(p, "[");
+        char* brk = strpbrk(p, "![");
         if (brk == NULL) {
             fputs(p, output);
             return;
@@ -53,6 +72,7 @@ static void processLine(char* line, FILE* output) {
         fwrite(p, sizeof(char), brk - p, output);
         switch (*brk) {
             case '[': p = processLink(brk, output); break;
+            case '!': p = processImage(brk, output); break;
         }
         if (p == brk)
             fputc(*p++, output);
