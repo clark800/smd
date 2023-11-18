@@ -61,10 +61,18 @@ static char* processImage(char* start, FILE* output) {
     return hrefEnd + 1;
 }
 
+static char* processBackslash(char* start, FILE* output) {
+    char* p = start;
+    fputc(*p++, output);
+    if (*p != 0)
+        fputc(*p++, output);
+    return p;
+}
+
 static void processLine(char* line, FILE* output) {
     char* p = line;
     while (*p != 0) {
-        char* brk = strpbrk(p, "![");
+        char* brk = strpbrk(p, "![\\");
         if (brk == NULL) {
             fputs(p, output);
             return;
@@ -73,6 +81,7 @@ static void processLine(char* line, FILE* output) {
         switch (*brk) {
             case '[': p = processLink(brk, output); break;
             case '!': p = processImage(brk, output); break;
+            case '\\': p = processBackslash(brk, output); break;
         }
         if (p == brk)
             fputc(*p++, output);
