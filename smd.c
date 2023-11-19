@@ -22,6 +22,13 @@ static int startsWith(char* string, char* prefix) {
     return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
 }
 
+static int startsWithAny(char* string, char** prefixes) {
+    for (int i = 0; prefixes[i] != NULL; i++)
+        if (startsWith(string, prefixes[i]))
+            return 1;
+    return 0;
+}
+
 static int isBlank(char* line) {
     return line == NULL || line[strspn(line, " \t")] == '\n';
 }
@@ -315,27 +322,11 @@ static void processMath(char* line, FILE* input, FILE* output) {
 
 static void processParagraph(char* line, FILE* input, FILE* output) {
     fputs("<p>\n", output);
-    processLine(line, output);
-    while (!isBlank(line = readLine(input))) {
-        if (startsWith(line, "```")) {
-            fputs("</p>\n", output);
-            processCodeFence(line, input, output);
-            return;
-        } else if (startsWith(line, "* ")) {
-            fputs("</p>\n", output);
-            processUnorderedList(line, input, output, 0);
-            return;
-        } else if (startsWith(line, ">")) {
-            fputs("</p>\n", output);
-            processBlockquote(line, input, output);
-            return;
-        } else if (startsWith(line, "$$")) {
-            fputs("</p>\n", output);
-            processMath(line, input, output);
-            return;
-        } else {
-            processLine(line, output);
-        }
+    char* interrupts[] = {"```", "* ", ">", "$$", 0};
+    for (; !isBlank(line); line = readLine(input)) {
+        processLine(line, output);
+        if (startsWithAny(peekLine(input), interrupts))
+            break;
     }
     fputs("</p>\n", output);
 }
