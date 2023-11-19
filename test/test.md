@@ -1,6 +1,10 @@
 Title
 =====
-Paragraph ``code``
+Paragraph $math$ $not math $math$ ``code``
+$$ math $$
+
+$$ math $$
+$$math$$
 
 ***This*** is ``*not* **code**
 
@@ -15,6 +19,7 @@ Here is a list:
   * A
   * B
 * Two
+
 
 ---
 

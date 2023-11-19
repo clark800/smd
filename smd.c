@@ -92,8 +92,8 @@ static char* processBackslash(char* start, FILE* output) {
     return p;
 }
 
-static char* processWrap(char* start, char* wrap,
-        char* openTags[], char* closeTags[], int tight, FILE* output) {
+static char* processWrap(char* start, char* wrap, int tightbits,
+        char* openTags[], char* closeTags[], FILE* output) {
     size_t maxlen = strlen(wrap);
     char search[] = {wrap[0], '\0'};
     size_t length = strspn(start, search);
@@ -106,6 +106,7 @@ static char* processWrap(char* start, char* wrap,
     delimiter[length] = '\0';
     char* content = start + length;
     char* end = strstr(content, delimiter);
+    int tight = tightbits & (1 << (length - 1));
     if (end == NULL || (tight && (isspace(content[0]) || isspace(end[-1]))))
         return start;
     fputs(openTags[length-1], output);
@@ -117,19 +118,25 @@ static char* processWrap(char* start, char* wrap,
 static char* processCode(char* start, FILE* output) {
     char* openTags[] = {"<code>", "<code>", "<code>"};
     char* closeTags[] = {"</code>", "</code>", "</code>"};
-    return processWrap(start, "```", openTags, closeTags, 1, output);
+    return processWrap(start, "```", 0, openTags, closeTags, output);
 }
 
 static char* processAsterisk(char* start, FILE* output) {
     char* openTags[] = {"<em>", "<strong>", "<em><strong>"};
     char* closeTags[] = {"</em>", "</strong>", "</strong></em>"};
-    return processWrap(start, "***", openTags, closeTags, 1, output);
+    return processWrap(start, "***", 7, openTags, closeTags, output);
+}
+
+static char* processMath(char* start, FILE* output) {
+    char* openTags[] = {"\\(", "\\["};
+    char* closeTags[] = {"\\)", "\\]"};
+    return processWrap(start, "$$", 1, openTags, closeTags, output);
 }
 
 static void processLine(char* line, FILE* output) {
     char* p = line;
     while (*p != 0) {
-        char* brk = strpbrk(p, "`*<![\\");
+        char* brk = strpbrk(p, "`$*<![\\");
         if (brk == NULL) {
             fputs(p, output);
             return;
@@ -137,6 +144,7 @@ static void processLine(char* line, FILE* output) {
         fwrite(p, sizeof(char), brk - p, output);
         switch (*brk) {
             case '`': p = processCode(brk, output); break;
+            case '$': p = processMath(brk, output); break;
             case '*': p = processAsterisk(brk, output); break;
             case '<': p = processAutoLink(brk, output); break;
             case '[': p = processLink(brk, output); break;
