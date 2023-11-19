@@ -107,21 +107,32 @@ static char* processBackslash(char* start, FILE* output) {
     return p;
 }
 
-static char* processAsterisk(char* start, FILE* output) {
-    char* openTags[] = {"<em>", "<strong>", "<em><strong>"};
-    char* closeTags[] = {"</em>", "</strong>", "</strong></em>"};
-    char delimiter[] = "***";
-    size_t span = strspn(start, "*");
-    size_t length = span < 3 ? span : 3;
+static char* processWrap(char* start, char* wrap,
+        char* openTags[], char* closeTags[], int tight, FILE* output) {
+    size_t maxlen = strlen(wrap);
+    char search[] = {wrap[0], '\0'};
+    size_t length = strspn(start, search);
+    if (length > maxlen || length > 15) {
+        fwrite(start, sizeof(char), length, output);
+        return start + length;
+    }
+    char delimiter[16];
+    strncpy(delimiter, wrap, length);
     delimiter[length] = '\0';
     char* content = start + length;
     char* end = strstr(content, delimiter);
-    if (end == NULL || isspace(content[0]) || isspace(end[-1]))
+    if (end == NULL || (tight && (isspace(content[0]) || isspace(end[-1]))))
         return start;
     fputs(openTags[length-1], output);
     fwrite(content, sizeof(char), end - content, output);
     fputs(closeTags[length-1], output);
     return end + length;
+}
+
+static char* processAsterisk(char* start, FILE* output) {
+    char* openTags[] = {"<em>", "<strong>", "<em><strong>"};
+    char* closeTags[] = {"</em>", "</strong>", "</strong></em>"};
+    return processWrap(start, "***", openTags, closeTags, 1, output);
 }
 
 static void processLine(char* line, FILE* output) {
