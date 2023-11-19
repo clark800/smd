@@ -365,12 +365,18 @@ static void processFootnote(char* line, FILE* input, FILE* output) {
     fputs("</p>\n", output);
 }
 
-int checkUnderline(char* line) {
-    if (line && line[0] == '=' && skip(skip(line, "="), " \t")[0] == '\n')
-        return 1;
-    if (line && line[0] == '-' && skip(skip(line, "-"), " \t")[0] == '\n')
-        return 2;
-    return 0;
+int processUnderline(char* line, FILE* input, FILE* output) {
+    char* next = peekLine(input);
+    char level = 0;
+    if (next && next[0] == '=' && skip(skip(next, "="), " \t")[0] == '\n')
+        level = 1;
+    if (next && next[0] == '-' && skip(skip(next, "-"), " \t")[0] == '\n')
+        level = 2;
+    if (level == 0)
+        return 0;
+    printHeading(line, level, output);
+    readLine(input);
+    return 1;
 }
 
 static void processFile(FILE* input, FILE* output) {
@@ -393,13 +399,9 @@ static void processFile(FILE* input, FILE* output) {
         } else {
             if (processHeading(line, input, output))
                 continue;
-            char level = checkUnderline(peekLine(input));
-            if (level) {
-                printHeading(line, level, output);
-                line = readLine(input);
-            } else {
-                processParagraph(line, input, output);
-            }
+            if (processUnderline(line, input, output))
+                continue;
+            processParagraph(line, input, output);
         }
     }
 }
