@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 static char LINE[4096];
 
@@ -167,15 +168,30 @@ static void processCodeFence(char* line, FILE* input, FILE* output) {
     fputs("</code>\n</pre>\n", output);
 }
 
-static void processUnorderedList(char* line, FILE* input, FILE* output) {
-    fputs("<ul>\n", output);
-    do {
-        int offset = line[1] == ' ' ? 2 : 1;
-        processLine(line + offset, output);
-        if (peek(input) != '*')
+static void processUnorderedList(FILE* input, FILE* output, int n) {
+    fputs("<ul>\n<li>\n", output);
+    for(int i = 0;; i++) {
+        int indent = strspn(LINE, " \t");
+        if (startsWith(LINE + indent, "* ")) {
+            if (indent < n) {
+                break;
+            } else if (indent > n) {
+                processUnorderedList(input, output, indent);
+                continue;  // LINE still needs to be processed
+            } if (indent == n) {
+                if (i != 0)
+                    fputs("</li>\n<li>\n", output);
+                processLine(LINE + indent + 2, output);
+            }
+        } else if (!isBlank(LINE)) {
+            processLine(LINE + indent, output);
+        }
+        int next = peek(input);
+        if (next != '*' && !isspace(next))  // todo: * could be italic
             break;
-    } while(readLine(input));
-    fputs("</ul>\n", output);
+        readLine(input);
+    }
+    fputs("</li>\n</ul>\n", output);
 }
 
 static void processParagraph(FILE* input, FILE* output) {
@@ -186,8 +202,13 @@ static void processParagraph(FILE* input, FILE* output) {
             fputs("</p>\n", output);
             processCodeFence(LINE, input, output);
             return;
+        } else if (startsWith(LINE, "* ")) {
+            fputs("</p>\n", output);
+            processUnorderedList(input, output, 0);
+            return;
+        } else {
+            processLine(LINE, output);
         }
-        processLine(LINE, output);
     }
     fputs("</p>\n", output);
 }
@@ -217,6 +238,8 @@ static void processFile(FILE* input, FILE* output) {
             processHeading(LINE, output);
         } else if (LINE[0] == '>') {
             processBlockquote(LINE, input, output);
+        } else if (startsWith(LINE, "* ")) {
+            processUnorderedList(input, output, 0);
         } else if (startsWith(LINE, "---")) {
             fputs("<hr>\n", output);
         } else if (startsWith(LINE, "```")) {
