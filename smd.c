@@ -4,8 +4,7 @@
 #include <ctype.h>
 
 static int peek(FILE* input) {
-    int c = fgetc(input);
-    return ungetc(c, input);
+    return ungetc(fgetc(input), input);
 }
 
 static char* chomp(char* line) {
