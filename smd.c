@@ -166,11 +166,11 @@ static char* processWrap(char* start, char* wrap, int tightbits,
     size_t maxlen = strlen(wrap);
     char search[] = {wrap[0], '\0'};
     size_t length = strspn(start, search);
-    if (length > maxlen || length > 15) {
+    char delimiter[16];
+    if (length > maxlen || length >= sizeof(delimiter)) {
         fputr(start, start + length, output);
         return start + length;
     }
-    char delimiter[16];
     strncpy(delimiter, wrap, length);
     delimiter[length] = '\0';
     char* content = start + length;
