@@ -35,17 +35,34 @@ static char* readLine(FILE* input) {
     return result;
 }
 
-static char* processAutoLink(char* start, FILE* output) {
-    char* href = start + 1;
-    char* hrefEnd = strchr(href, '>');
-    if (hrefEnd == NULL || hrefEnd == href)
-        return start;
+static char* processEscape(char* start, FILE* output) {
+    switch(start[0]) {
+        case '<': fputs("&lt;", output); break;
+        case '>': fputs("&gt;", output); break;
+        case '&': fputs("&amp;", output); break;
+    }
+    return start + 1;
+}
+
+static char* processLessThan(char* start, FILE* output) {
+    char* content = start + 1;
+    if (isspace(content[0]))
+        return processEscape(start, output);
+    char* end = strchr(content, '>');
+    if (end == NULL || end == content)
+        return processEscape(start, output);
+    char* space = memchr(content, ' ', end - content);
+    char* colon = memchr(content, ':', end - content);
+    if (space != NULL || colon == NULL) {  // assume this is an HTML tag
+        fwrite(start, sizeof(char), (end + 1) - start, output);
+        return end + 1;
+    }
     fputs("<a href=\"", output);
-    fwrite(href, sizeof(char), hrefEnd - href, output);
+    fwrite(content, sizeof(char), end - content, output);
     fputs("\">", output);
-    fwrite(href, sizeof(char), hrefEnd - href, output);
+    fwrite(content, sizeof(char), end - content, output);
     fputs("</a>", output);
-    return hrefEnd + 1;
+    return end + 1;
 }
 
 static char* processLink(char* start, FILE* output) {
@@ -136,7 +153,7 @@ static char* processMath(char* start, FILE* output) {
 static void processLine(char* line, FILE* output) {
     char* p = line;
     while (*p != 0) {
-        char* brk = strpbrk(p, "`$*<![\\");
+        char* brk = strpbrk(p, "`$*<>&![\\");
         if (brk == NULL) {
             fputs(p, output);
             return;
@@ -146,9 +163,11 @@ static void processLine(char* line, FILE* output) {
             case '`': p = processCode(brk, output); break;
             case '$': p = processMath(brk, output); break;
             case '*': p = processAsterisk(brk, output); break;
-            case '<': p = processAutoLink(brk, output); break;
-            case '[': p = processLink(brk, output); break;
+            case '<': p = processLessThan(brk, output); break;
+            case '>': p = processEscape(brk, output); break;
+            case '&': p = processEscape(brk, output); break;
             case '!': p = processImage(brk, output); break;
+            case '[': p = processLink(brk, output); break;
             case '\\': p = processBackslash(brk, output); break;
         }
         if (p == brk)

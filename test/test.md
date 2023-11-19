@@ -1,7 +1,8 @@
 Title
 =====
-Paragraph $math$ $not math $math$ ``code``
+Paragraph & $math$ $not math $math$ ``code``
 $$ math $$
+a < b > c
 
 $$ math $$
 $$math$$
@@ -20,6 +21,7 @@ Here is a list:
   * B
 * Two
 
+Inline <a href="page.html">link</a>
 
 ---
 
