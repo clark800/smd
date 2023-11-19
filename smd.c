@@ -287,8 +287,8 @@ static void processUnorderedList(char* line, FILE* input, FILE* output, int n) {
         } else if (!isBlank(line)) {
             processLine(line + indent, output);
         }
-        int next = peek(input);
-        if (next != '*' && !isspace(next))  // todo: * could be italic
+        char* next = peekLine(input);
+        if (!isspace(next[0]) && !startsWith(next, "* "))
             break;
         line = readLine(input);
     }
