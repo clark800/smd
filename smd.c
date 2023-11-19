@@ -196,7 +196,7 @@ static char* processAsterisk(char* start, FILE* output) {
     return processWrap(start, "***", 7, openTags, closeTags, output);
 }
 
-static char* processMath(char* start, FILE* output) {
+static char* processInlineMath(char* start, FILE* output) {
     char* openTags[] = {"\\(", "\\["};
     char* closeTags[] = {"\\)", "\\]"};
     return processWrap(start, "$$", 1, openTags, closeTags, output);
@@ -213,7 +213,7 @@ static void processLine(char* line, FILE* output) {
         fputr(p, brk, output);
         switch (*brk) {
             case '`': p = processCode(brk, output); break;
-            case '$': p = processMath(brk, output); break;
+            case '$': p = processInlineMath(brk, output); break;
             case '*': p = processAsterisk(brk, output); break;
             case '<': p = processLessThan(brk, output); break;
             case '>': p = processEscape(brk, output); break;
@@ -282,6 +282,20 @@ static void processBlockquote(char* line, FILE* input, FILE* output) {
     fputs("</blockquote>\n", output);
 }
 
+static void processMath(char* line, FILE* input, FILE* output) {
+    line += 2;
+    fputs("\\[", output);
+    do {
+        char* end = strstr(line, "$$");
+        if (end == NULL)
+            end = line + strlen(line);
+        processVerbatim(line, end, output);
+        if (*end == '$')
+            break;
+    } while ((line = readLine(input)));
+    fputs("\\]\n", output);
+}
+
 static void processParagraph(char* line, FILE* input, FILE* output) {
     fputs("<p>\n", output);
     processLine(line, output);
@@ -297,6 +311,10 @@ static void processParagraph(char* line, FILE* input, FILE* output) {
         } else if (startsWith(line, ">")) {
             fputs("</p>\n", output);
             processBlockquote(line, input, output);
+            return;
+        } else if (startsWith(line, "$$")) {
+            fputs("</p>\n", output);
+            processMath(line, input, output);
             return;
         } else {
             processLine(line, output);
@@ -358,6 +376,8 @@ static void processFile(FILE* input, FILE* output) {
             processCodeFence(line, input, output);
         } else if (startsWith(line, "[^")) {
             processFootnote(line, input, output);
+        } else if (startsWith(line, "$$")) {
+            processMath(line, input, output);
         } else {
             int next = peek(input);
             if (next == '=') {

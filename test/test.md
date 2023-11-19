@@ -22,6 +22,8 @@ Here is a list:[^foot]
 * Two
 
 Inline <a href="page.html">link</a>
+$$
+math $$
 
 ---
 
