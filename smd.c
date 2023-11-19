@@ -17,21 +17,21 @@ static char* chomp(char* line) {
 }
 
 static int startsWith(char* string, char* prefix) {
-    return strncmp(prefix, string, strlen(prefix)) == 0;
+    return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
 }
 
 static int isBlank(char* line) {
-    return line[strspn(line, " \t")] == '\n';
+    return line == NULL || line[strspn(line, " \t")] == '\n';
 }
 
 static char* readLine(FILE* input) {
     LINE[sizeof(LINE) - 1] = '\n';
-    fgets(LINE, sizeof(LINE), input);
+    char* result = fgets(LINE, sizeof(LINE), input);
     if (LINE[sizeof(LINE) - 1] != '\n') {
         fputs("Line too long", stderr);
         exit(1);
     }
-    return LINE;
+    return result;
 }
 
 static char* processSimpleLink(char* start, FILE* output) {
@@ -163,10 +163,21 @@ static void processCodeFence(char* line, FILE* input, FILE* output) {
     fputs("</code>\n</pre>\n", output);
 }
 
+static void processUnorderedList(char* line, FILE* input, FILE* output) {
+    fputs("<ul>\n", output);
+    do {
+        int offset = line[1] == ' ' ? 2 : 1;
+        processLine(line + offset, output);
+        if (peek(input) != '*')
+            break;
+    } while(readLine(input));
+    fputs("</ul>\n", output);
+}
+
 static void processParagraph(FILE* input, FILE* output) {
     fputs("<p>\n", output);
     processLine(LINE, output);
-    while(!feof(input) && !isBlank(readLine(input))) {
+    while(!isBlank(readLine(input))) {
         if (startsWith(LINE, "```")) {
             fputs("</p>\n", output);
             processCodeFence(LINE, input, output);
@@ -179,7 +190,7 @@ static void processParagraph(FILE* input, FILE* output) {
 
 static void processHTML(FILE* input, FILE* output) {
     fputs(LINE, output);
-    while(!feof(input) && !isBlank(readLine(input)))
+    while(!isBlank(readLine(input)))
         fputs(LINE, output);
 }
 
@@ -190,16 +201,12 @@ static void processBlockquote(char* line, FILE* input, FILE* output) {
         processLine(line + offset, output);
         if (peek(input) != '>')
             break;
-        readLine(input);
-    } while(!feof(input));
+    } while(readLine(input));
     fputs("</blockquote>\n", output);
 }
 
-static void processBlock(FILE* input, FILE* output) {
-    while(1) {
-        readLine(input);
-        if (feof(input))
-            break;
+static void processFile(FILE* input, FILE* output) {
+    while(readLine(input)) {
         size_t indent = strspn(LINE, " \t");
         if (LINE[indent] == '\n') {
         } else if (LINE[0] == '#') {
@@ -230,6 +237,5 @@ static void processBlock(FILE* input, FILE* output) {
 }
 
 int main(int argc, char* argv[]) {
-    while(!feof(stdin))
-        processBlock(stdin, stdout);
+    processFile(stdin, stdout);
 }
