@@ -322,7 +322,7 @@ static void processMath(char* line, FILE* input, FILE* output) {
 
 static void processParagraph(char* line, FILE* input, FILE* output) {
     fputs("<p>\n", output);
-    char* interrupts[] = {"```", "* ", ">", "$$", 0};
+    char* interrupts[] = {"```", "---", "* ", ">", "$$", 0};
     for (; !isBlank(line); line = readLine(input)) {
         processLine(line, output);
         if (startsWithAny(peekLine(input), interrupts))

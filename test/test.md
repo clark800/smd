@@ -25,6 +25,12 @@ Inline <a href="page.html">link</a>
 $$
 math $$
 
+Paragraph
+Line Two
+---
+Line Three
+
+
 ---
 
 Section
