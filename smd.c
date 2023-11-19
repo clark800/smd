@@ -14,8 +14,8 @@ static char* chomp(char* line) {
     return line;
 }
 
-static char* skipWhitespace(char* line) {
-    return line + strspn(line, " \t");
+static char* skip(char* line, char* characters) {
+    return line + strspn(line, characters);
 }
 
 static int startsWith(char* string, char* prefix) {
@@ -256,7 +256,7 @@ static void processCodeFence(char* line, FILE* input, FILE* output) {
     size_t length = strspn(line, "`");
     if (length < sizeof(delimiter))
         delimiter[length] = '\0';
-    char* language = chomp(skipWhitespace(line + length));
+    char* language = chomp(skip(line + length, " \t"));
     if (language[0] != '\0') {
         fputs("<pre>\n<code class=\"language-", output);
         fputs(language, output);
@@ -343,7 +343,7 @@ static void printHeading(char* title, int level, FILE* output) {
 
 static void processHeading(char* line, FILE* input, FILE* output) {
     size_t level = strspn(line, "#");
-    char* title = skipWhitespace(line + level);
+    char* title = skip(line + level, " \t");
     if (level > 6 || title[0] == '\n') {
         processParagraph(line, input, output);
     } else {
@@ -361,18 +361,16 @@ static void processFootnote(char* line, FILE* input, FILE* output) {
     fputs("<p id=\"", output);
     fputr(name, end, output);
     fputs("\">\n", output);
-    processLine(skipWhitespace(end + 2), output);
+    processLine(skip(end + 2, " \t"), output);
     while (isspace(peek(input)))
         processLine(readLine(input), output);
     fputs("</p>\n", output);
 }
 
 int checkUnderline(char* line) {
-    if (!line)
-        return 0;
-    if (line[0] == '=' && skipWhitespace(line + strspn(line, "="))[0] == '\n')
+    if (line && line[0] == '=' && skip(skip(line, "="), " \t")[0] == '\n')
         return 1;
-    if (line[0] == '-' && skipWhitespace(line + strspn(line, "-"))[0] == '\n')
+    if (line && line[0] == '-' && skip(skip(line, "-"), " \t")[0] == '\n')
         return 2;
     return 0;
 }
@@ -380,7 +378,7 @@ int checkUnderline(char* line) {
 static void processFile(FILE* input, FILE* output) {
     char* line = NULL;
     while ((line = readLine(input))) {
-        char* start = skipWhitespace(line);
+        char* start = skip(line, " \t");
         if (start[0] == '\n') {
         } else if (line[0] == '#') {
             processHeading(line, input, output);
