@@ -377,6 +377,8 @@ static void processFootnote(char* line, FILE* input, FILE* output) {
 }
 
 int checkUnderline(char* line) {
+    if (!line)
+        return 0;
     if (line[0] == '=' && skipWhitespace(line + strspn(line, "="))[0] == '\n')
         return 1;
     if (line[0] == '-' && skipWhitespace(line + strspn(line, "-"))[0] == '\n')
