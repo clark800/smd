@@ -92,7 +92,7 @@ static char* findClose(char* p, char* brackets) {
 
 static char* processLink(char* start, FILE* output) {
     char* title = start + 1;
-    char* titleEnd = strchr(title, ']');
+    char* titleEnd = findClose(start, "[]");
     if (titleEnd == NULL || titleEnd == title)
         return start;
     if (title[0] == '^') {

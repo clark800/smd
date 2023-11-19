@@ -26,7 +26,7 @@ Inline <a href="page.html">link</a>
 ---
 
 ## Section
-Paragraph [link](page(pa(r)en).html)
+Paragraph [link[a]](page(pa(r)en).html)
 
 ```json
 
