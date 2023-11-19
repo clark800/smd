@@ -83,9 +83,9 @@ static char* processLessThan(char* start, FILE* output) {
     return end + 1;
 }
 
-static char* findClose(char* p, char* b) {
-    for (int count = 1; count > 0; count += (*p == *b ? 1 : -1))
-        if (!(p = strpbrk(++p, b)))
+static char* findClose(char* p, char* brackets) {
+    for (int count = 1; count > 0; count += (*p == *brackets ? 1 : -1))
+        if (!(p = strpbrk(++p, brackets)))
             return NULL;
     return p;
 }
