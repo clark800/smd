@@ -216,26 +216,6 @@ static void processLine(char* line, FILE* output) {
     }
 }
 
-static void printHeading(char* title, int level, FILE* output) {
-    char openTag[] = "<h0>";
-    char closeTag[] = "</h0>\n";
-    openTag[2] = '0' + level;
-    closeTag[3] = '0' + level;
-    fputs(openTag, output);
-    fputs(chomp(title), output);
-    fputs(closeTag, output);
-}
-
-static void processHeading(char* line, FILE* output) {
-    size_t level = strspn(line, "#");
-    char* title = skipWhitespace(line + level);
-    if (level > 6 || title[0] == '\n') {
-        fputs(line, output);
-    } else {
-        printHeading(title, level, output);
-    }
-}
-
 static void processCodeFence(char* line, FILE* input, FILE* output) {
     char delimiter[] = "````````````````";
     size_t length = strspn(line, "`");
@@ -314,6 +294,26 @@ static void processParagraph(char* line, FILE* input, FILE* output) {
     fputs("</p>\n", output);
 }
 
+static void printHeading(char* title, int level, FILE* output) {
+    char openTag[] = "<h0>";
+    char closeTag[] = "</h0>\n";
+    openTag[2] = '0' + level;
+    closeTag[3] = '0' + level;
+    fputs(openTag, output);
+    fputs(chomp(title), output);
+    fputs(closeTag, output);
+}
+
+static void processHeading(char* line, FILE* input, FILE* output) {
+    size_t level = strspn(line, "#");
+    char* title = skipWhitespace(line + level);
+    if (level > 6 || title[0] == '\n') {
+        processParagraph(line, input, output);
+    } else {
+        printHeading(title, level, output);
+    }
+}
+
 static void processFootnote(char* line, FILE* input, FILE* output) {
     char* name = line + 2;
     char* end = strchr(name, ']');
@@ -336,7 +336,7 @@ static void processFile(FILE* input, FILE* output) {
         char* start = skipWhitespace(line);
         if (start[0] == '\n') {
         } else if (line[0] == '#') {
-            processHeading(line, output);
+            processHeading(line, input, output);
         } else if (line[0] == '>') {
             processBlockquote(line, input, output);
         } else if (startsWith(line, "* ")) {
