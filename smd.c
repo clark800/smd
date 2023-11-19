@@ -127,14 +127,7 @@ static void processLine(char* line, FILE* output) {
     }
 }
 
-static void processHeading(char* line, FILE* output) {
-    size_t level = strspn(line, "#");
-    size_t indent = strspn(line + level, " \t");
-    char* title = line + level + indent;
-    if (level > 6 || title[0] == '\n') {
-        fputs(LINE, output);
-        return;
-    }
+static void printHeading(char* title, int level, FILE* output) {
     char openTag[] = "<h0>";
     char closeTag[] = "</h0>\n";
     openTag[2] = '0' + level;
@@ -142,6 +135,17 @@ static void processHeading(char* line, FILE* output) {
     fputs(openTag, output);
     fputs(chomp(title), output);
     fputs(closeTag, output);
+}
+
+static void processHeading(char* line, FILE* output) {
+    size_t level = strspn(line, "#");
+    size_t whitespace = strspn(line + level, " \t");
+    char* title = line + level + whitespace;
+    if (level > 6 || title[0] == '\n') {
+        fputs(LINE, output);
+    } else {
+        printHeading(title, level, output);
+    }
 }
 
 static void processCodeFence(char* line, FILE* input, FILE* output) {
@@ -220,14 +224,10 @@ static void processFile(FILE* input, FILE* output) {
         } else {
             int next = peek(input);
             if (next == '=') {
-                fputs("<h1>", output);
-                processLine(chomp(LINE), output);
-                fputs("</h1>\n", output);
+                printHeading(LINE, 1, output);
                 readLine(input);
             } else if (next == '-') {
-                fputs("<h2>", output);
-                processLine(chomp(LINE), output);
-                fputs("</h2>\n", output);
+                printHeading(LINE, 2, output);
                 readLine(input);
             } else {
                 processParagraph(input, output);
