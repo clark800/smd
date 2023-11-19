@@ -224,8 +224,7 @@ static void printHeading(char* title, int level, FILE* output) {
 
 static void processHeading(char* line, FILE* output) {
     size_t level = strspn(line, "#");
-    size_t whitespace = strspn(line + level, " \t");
-    char* title = line + level + whitespace;
+    char* title = skipWhitespace(line + level);
     if (level > 6 || title[0] == '\n') {
         fputs(line, output);
     } else {
@@ -236,10 +235,9 @@ static void processHeading(char* line, FILE* output) {
 static void processCodeFence(char* line, FILE* input, FILE* output) {
     char delimiter[] = "````````````````";
     size_t length = strspn(line, "`");
-    size_t whitespace = strspn(line + length, " \t");
     if (length < sizeof(delimiter))
         delimiter[length] = '\0';
-    char* language = chomp(line + length + whitespace);
+    char* language = chomp(skipWhitespace(line + length));
     if (language[0] != '\0') {
         fputs("<pre>\n<code class=\"language-", output);
         fputs(language, output);
@@ -331,8 +329,8 @@ static void processFootnote(char* line, FILE* input, FILE* output) {
 static void processFile(FILE* input, FILE* output) {
     char* line = NULL;
     while ((line = readLine(input))) {
-        size_t indent = strspn(line, " \t");
-        if (line[indent] == '\n') {
+        char* start = skipWhitespace(line);
+        if (start[0] == '\n') {
         } else if (line[0] == '#') {
             processHeading(line, output);
         } else if (line[0] == '>') {
