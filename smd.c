@@ -341,14 +341,12 @@ static void printHeading(char* title, int level, FILE* output) {
     fputs(closeTag, output);
 }
 
-static void processHeading(char* line, FILE* input, FILE* output) {
+static int processHeading(char* line, FILE* input, FILE* output) {
     size_t level = strspn(line, "#");
-    char* title = skip(line + level, " \t");
-    if (level > 6 || title[0] == '\n') {
-        processParagraph(line, input, output);
-    } else {
-        printHeading(title, level, output);
-    }
+    if (level > 6 || !isblank(*(line + level)))
+        return 0;
+    printHeading(skip(line + level, " \t"), level, output);
+    return 1;
 }
 
 static void processFootnote(char* line, FILE* input, FILE* output) {
@@ -380,8 +378,6 @@ static void processFile(FILE* input, FILE* output) {
     while ((line = readLine(input))) {
         char* start = skip(line, " \t");
         if (start[0] == '\n') {
-        } else if (line[0] == '#') {
-            processHeading(line, input, output);
         } else if (line[0] == '>') {
             processBlockquote(line, input, output);
         } else if (startsWith(line, "* ")) {
@@ -395,6 +391,8 @@ static void processFile(FILE* input, FILE* output) {
         } else if (startsWith(line, "$$")) {
             processMath(line, input, output);
         } else {
+            if (processHeading(line, input, output))
+                continue;
             char level = checkUnderline(peekLine(input));
             if (level) {
                 printHeading(line, level, output);

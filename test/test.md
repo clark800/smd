@@ -25,10 +25,13 @@ Inline <a href="page.html">link</a>
 $$
 math $$
 
+######### Not a heading
 Paragraph
 Line Two
 ---
 Line Three
+
+###Not a heading
 
 
 ---
