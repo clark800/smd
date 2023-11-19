@@ -228,7 +228,7 @@ static void processHeading(char* line, FILE* output) {
     size_t whitespace = strspn(line + level, " \t");
     char* title = line + level + whitespace;
     if (level > 6 || title[0] == '\n') {
-        fputs(LINE, output);
+        fputs(line, output);
     } else {
         printHeading(title, level, output);
     }
@@ -248,33 +248,33 @@ static void processCodeFence(char* line, FILE* input, FILE* output) {
     } else {
         fputs("<pre>\n<code>\n", output);
     }
-    while (!feof(input) && !startsWith(readLine(input), delimiter))
-        fputs(LINE, output);
+    while ((line = readLine(input)) && !startsWith(line, delimiter))
+        fputs(line, output);
     fputs("</code>\n</pre>\n", output);
 }
 
-static void processUnorderedList(FILE* input, FILE* output, int n) {
+static void processUnorderedList(char* line, FILE* input, FILE* output, int n) {
     fputs("<ul>\n<li>\n", output);
     for (int i = 0;; i++) {
-        int indent = strspn(LINE, " \t");
-        if (startsWith(LINE + indent, "* ")) {
+        int indent = strspn(line, " \t");
+        if (startsWith(line + indent, "* ")) {
             if (indent < n) {
                 break;
             } else if (indent > n) {
-                processUnorderedList(input, output, indent);
-                continue;  // LINE still needs to be processed
+                processUnorderedList(line, input, output, indent);
+                continue;  // line still needs to be processed
             } if (indent == n) {
                 if (i != 0)
                     fputs("</li>\n<li>\n", output);
-                processLine(LINE + indent + 2, output);
+                processLine(line + indent + 2, output);
             }
-        } else if (!isBlank(LINE)) {
-            processLine(LINE + indent, output);
+        } else if (!isBlank(line)) {
+            processLine(line + indent, output);
         }
         int next = peek(input);
         if (next != '*' && !isspace(next))  // todo: * could be italic
             break;
-        readLine(input);
+        line = readLine(input);
     }
     fputs("</li>\n</ul>\n", output);
 }
@@ -286,28 +286,28 @@ static void processBlockquote(char* line, FILE* input, FILE* output) {
         processLine(line + offset, output);
         if (peek(input) != '>')
             break;
-    } while (readLine(input));
+    } while ((line = readLine(input)));
     fputs("</blockquote>\n", output);
 }
 
-static void processParagraph(FILE* input, FILE* output) {
+static void processParagraph(char* line, FILE* input, FILE* output) {
     fputs("<p>\n", output);
-    processLine(LINE, output);
-    while (!isBlank(readLine(input))) {
-        if (startsWith(LINE, "```")) {
+    processLine(line, output);
+    while (!isBlank(line = readLine(input))) {
+        if (startsWith(line, "```")) {
             fputs("</p>\n", output);
-            processCodeFence(LINE, input, output);
+            processCodeFence(line, input, output);
             return;
-        } else if (startsWith(LINE, "* ")) {
+        } else if (startsWith(line, "* ")) {
             fputs("</p>\n", output);
-            processUnorderedList(input, output, 0);
+            processUnorderedList(line, input, output, 0);
             return;
-        } else if (startsWith(LINE, ">")) {
+        } else if (startsWith(line, ">")) {
             fputs("</p>\n", output);
-            processBlockquote(LINE, input, output);
+            processBlockquote(line, input, output);
             return;
         } else {
-            processLine(LINE, output);
+            processLine(line, output);
         }
     }
     fputs("</p>\n", output);
@@ -317,7 +317,7 @@ static void processFootnote(char* line, FILE* input, FILE* output) {
     char* name = line + 2;
     char* end = strchr(name, ']');
     if (end == NULL || end == name || end[1] != ':') {
-        processParagraph(input, output);
+        processParagraph(line, input, output);
         return;
     }
     fputs("<p id=\"", output);
@@ -330,31 +330,32 @@ static void processFootnote(char* line, FILE* input, FILE* output) {
 }
 
 static void processFile(FILE* input, FILE* output) {
-    while (readLine(input)) {
-        size_t indent = strspn(LINE, " \t");
-        if (LINE[indent] == '\n') {
-        } else if (LINE[0] == '#') {
-            processHeading(LINE, output);
-        } else if (LINE[0] == '>') {
-            processBlockquote(LINE, input, output);
-        } else if (startsWith(LINE, "* ")) {
-            processUnorderedList(input, output, 0);
-        } else if (startsWith(LINE, "---")) {
+    char* line = NULL;
+    while ((line = readLine(input))) {
+        size_t indent = strspn(line, " \t");
+        if (line[indent] == '\n') {
+        } else if (line[0] == '#') {
+            processHeading(line, output);
+        } else if (line[0] == '>') {
+            processBlockquote(line, input, output);
+        } else if (startsWith(line, "* ")) {
+            processUnorderedList(line, input, output, 0);
+        } else if (startsWith(line, "---")) {
             fputs("<hr>\n", output);
-        } else if (startsWith(LINE, "```")) {
-            processCodeFence(LINE, input, output);
-        } else if (startsWith(LINE, "[^")) {
-            processFootnote(LINE, input, output);
+        } else if (startsWith(line, "```")) {
+            processCodeFence(line, input, output);
+        } else if (startsWith(line, "[^")) {
+            processFootnote(line, input, output);
         } else {
             int next = peek(input);
             if (next == '=') {
-                printHeading(LINE, 1, output);
-                readLine(input);
+                printHeading(line, 1, output);
+                line = readLine(input);
             } else if (next == '-') {
-                printHeading(LINE, 2, output);
-                readLine(input);
+                printHeading(line, 2, output);
+                line = readLine(input);
             } else {
-                processParagraph(input, output);
+                processParagraph(line, input, output);
             }
         }
     }
