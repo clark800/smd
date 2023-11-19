@@ -35,11 +35,22 @@ static char* readLine(FILE* input) {
     return result;
 }
 
+static char* processAmpersand(char* start, FILE* output) {
+    char* semicolon = strchr(start, ';');
+    char* space = memchr(start, ' ', semicolon - start);
+    if (semicolon != NULL && space == NULL && semicolon > start + 1) { // Entity
+        fwrite(start, sizeof(char), (semicolon + 1) - start, output);
+        return semicolon + 1;
+    }
+    fputs("&amp;", output);
+    return start + 1;
+}
+
 static char* processEscape(char* start, FILE* output) {
     switch(start[0]) {
         case '<': fputs("&lt;", output); break;
         case '>': fputs("&gt;", output); break;
-        case '&': fputs("&amp;", output); break;
+        case '&': return processAmpersand(start, output);
     }
     return start + 1;
 }
@@ -204,7 +215,7 @@ static void processCodeFence(char* line, FILE* input, FILE* output) {
         delimiter[length] = '\0';
     char* language = chomp(line + length + whitespace);
     if (language[0] != '\0') {
-        fputs("<pre><code class=\"language-", output);
+        fputs("<pre>\n<code class=\"language-", output);
         fputs(language, output);
         fputs("\">\n", output);
     } else {

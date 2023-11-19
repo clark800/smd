@@ -1,6 +1,6 @@
 Title
 =====
-Paragraph & $math$ $not math $math$ ``code``
+Paragraph & &amp; $math$ $not math $math$ ``code``
 $$ math $$
 a < b > c
 
