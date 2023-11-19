@@ -288,7 +288,7 @@ static void processUnorderedList(char* line, FILE* input, FILE* output, int n) {
             processLine(line + indent, output);
         }
         char* next = peekLine(input);
-        if (!isspace(next[0]) && !startsWith(next, "* "))
+        if (!next || !isspace(next[0]) && !startsWith(next, "* "))
             break;
         line = readLine(input);
     }
