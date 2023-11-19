@@ -27,6 +27,10 @@ static int isBlank(char* line) {
     return line == NULL || line[strspn(line, " \t")] == '\n';
 }
 
+static size_t fputr(char* start, char* end, FILE* output) {
+    return fwrite(start, sizeof(char), end - start, output);
+}
+
 static char* readLine(FILE* input) {
     static char line[4096];
     line[sizeof(line) - 1] = '\n';
@@ -42,7 +46,7 @@ static char* processAmpersand(char* start, FILE* output) {
     char* semicolon = strchr(start, ';');
     char* space = memchr(start, ' ', semicolon - start);
     if (semicolon != NULL && space == NULL && semicolon > start + 1) { // Entity
-        fwrite(start, sizeof(char), (semicolon + 1) - start, output);
+        fputr(start, semicolon + 1, output);
         return semicolon + 1;
     }
     fputs("&amp;", output);
@@ -68,13 +72,13 @@ static char* processLessThan(char* start, FILE* output) {
     char* space = memchr(content, ' ', end - content);
     char* colon = memchr(content, ':', end - content);
     if (space != NULL || colon == NULL) {  // assume this is an HTML tag
-        fwrite(start, sizeof(char), (end + 1) - start, output);
+        fputr(start, end + 1, output);
         return end + 1;
     }
     fputs("<a href=\"", output);
-    fwrite(content, sizeof(char), end - content, output);
+    fputr(content, end, output);
     fputs("\">", output);
-    fwrite(content, sizeof(char), end - content, output);
+    fputr(content, end, output);
     fputs("</a>", output);
     return end + 1;
 }
@@ -86,7 +90,7 @@ static char* processLink(char* start, FILE* output) {
         return start;
     if (title[0] == '^') {
         fputs("<sup><a href=\"#", output);
-        fwrite(title + 1, sizeof(char), titleEnd - (title + 1), output);
+        fputr(title + 1, titleEnd, output);
         fputs("\">*</sup>", output);
         return titleEnd + 1;
     }
@@ -95,9 +99,9 @@ static char* processLink(char* start, FILE* output) {
     if (href[-1] != '(' || hrefEnd == NULL || hrefEnd == href)
         return start;
     fputs("<a href=\"", output);
-    fwrite(href, sizeof(char), hrefEnd - href, output);
+    fputr(href, hrefEnd, output);
     fputs("\">", output);
-    fwrite(title, sizeof(char), titleEnd - title, output);
+    fputr(title, titleEnd, output);
     fputs("</a>", output);
     return hrefEnd + 1;
 }
@@ -114,9 +118,9 @@ static char* processImage(char* start, FILE* output) {
     if (hrefEnd == NULL || hrefEnd == href)
         return start;
     fputs("<img src=\"", output);
-    fwrite(href, sizeof(char), hrefEnd - href, output);
+    fputr(href, hrefEnd, output);
     fputs(" alt=\"", output);
-    fwrite(title, sizeof(char), titleEnd - title, output);
+    fputr(title, titleEnd, output);
     fputs("\">", output);
     return hrefEnd + 1;
 }
@@ -135,7 +139,7 @@ static char* processVerbatim(char* start, char* end, FILE* output) {
         char* brk = strpbrk(p, "<>&");
         if (brk == NULL || brk > end)
             brk = end;
-        fwrite(p, sizeof(char), brk - p, output);
+        fputr(p, brk, output);
         switch (brk[0]) {
             case '<': fputs("&lt;", output); break;
             case '>': fputs("&gt;", output); break;
@@ -152,7 +156,7 @@ static char* processWrap(char* start, char* wrap, int tightbits,
     char search[] = {wrap[0], '\0'};
     size_t length = strspn(start, search);
     if (length > maxlen || length > 15) {
-        fwrite(start, sizeof(char), length, output);
+        fputr(start, start + length, output);
         return start + length;
     }
     char delimiter[16];
@@ -195,7 +199,7 @@ static void processLine(char* line, FILE* output) {
             fputs(p, output);
             return;
         }
-        fwrite(p, sizeof(char), brk - p, output);
+        fputr(p, brk, output);
         switch (*brk) {
             case '`': p = processCode(brk, output); break;
             case '$': p = processMath(brk, output); break;
@@ -318,7 +322,7 @@ static void processFootnote(char* line, FILE* input, FILE* output) {
         return;
     }
     fputs("<p id=\"", output);
-    fwrite(name, sizeof(char), end - name, output);
+    fputr(name, end, output);
     fputs("\">\n", output);
     processLine(skipWhitespace(end + 2), output);
     while (isspace(peek(input)))
