@@ -27,6 +27,11 @@ math $$
 
 ---
 
+Section
+-------
+Not a section
+- a
+
 ## Section
 Paragraph [link[a]](page(pa(r)en).html)
 

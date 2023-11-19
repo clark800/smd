@@ -376,6 +376,14 @@ static void processFootnote(char* line, FILE* input, FILE* output) {
     fputs("</p>\n", output);
 }
 
+int checkUnderline(char* line) {
+    if (line[0] == '=' && skipWhitespace(line + strspn(line, "="))[0] == '\n')
+        return 1;
+    if (line[0] == '-' && skipWhitespace(line + strspn(line, "-"))[0] == '\n')
+        return 2;
+    return 0;
+}
+
 static void processFile(FILE* input, FILE* output) {
     char* line = NULL;
     while ((line = readLine(input))) {
@@ -396,12 +404,9 @@ static void processFile(FILE* input, FILE* output) {
         } else if (startsWith(line, "$$")) {
             processMath(line, input, output);
         } else {
-            int next = peek(input);
-            if (next == '=') {
-                printHeading(line, 1, output);
-                line = readLine(input);
-            } else if (next == '-') {
-                printHeading(line, 2, output);
+            char level = checkUnderline(peekLine(input));
+            if (level) {
+                printHeading(line, level, output);
                 line = readLine(input);
             } else {
                 processParagraph(line, input, output);
