@@ -20,7 +20,12 @@ Here is a list:[^foot]
   * A
   * B
 * Two
+  - C
+  - D
+* Three
 *italic*
+- A
+- B
 
 Inline <a href="page.html">link</a>
 $$

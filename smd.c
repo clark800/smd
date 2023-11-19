@@ -271,9 +271,10 @@ static void processCodeFence(char* line, FILE* input, FILE* output) {
 
 static void processUnorderedList(char* line, FILE* input, FILE* output, int n) {
     fputs("<ul>\n<li>\n", output);
+    char* bullets[] = {"* ", "- ", 0};
     for (int i = 0;; i++) {
         int indent = strspn(line, " \t");
-        if (startsWith(line + indent, "* ")) {
+        if (startsWithAny(line + indent, bullets)) {
             if (indent < n) {
                 break;
             } else if (indent > n) {
@@ -288,7 +289,7 @@ static void processUnorderedList(char* line, FILE* input, FILE* output, int n) {
             processLine(line + indent, output);
         }
         char* next = peekLine(input);
-        if (!next || !isspace(next[0]) && !startsWith(next, "* "))
+        if (!next || !isspace(next[0]) && !startsWithAny(next, bullets))
             break;
         line = readLine(input);
     }
@@ -322,7 +323,7 @@ static void processMath(char* line, FILE* input, FILE* output) {
 
 static void processParagraph(char* line, FILE* input, FILE* output) {
     fputs("<p>\n", output);
-    char* interrupts[] = {"```", "---", "* ", ">", "$$", 0};
+    char* interrupts[] = {"```", "---", "* ", "- ", ">", "$$", 0};
     for (; !isBlank(line); line = readLine(input)) {
         processLine(line, output);
         if (startsWithAny(peekLine(input), interrupts))
@@ -387,6 +388,8 @@ static void processFile(FILE* input, FILE* output) {
         } else if (line[0] == '>') {
             processBlockquote(line, input, output);
         } else if (startsWith(line, "* ")) {
+            processUnorderedList(line, input, output, 0);
+        } else if (startsWith(line, "- ")) {
             processUnorderedList(line, input, output, 0);
         } else if (startsWith(line, "---")) {
             fputs("<hr>\n", output);
