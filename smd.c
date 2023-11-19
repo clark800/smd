@@ -194,6 +194,17 @@ static void processUnorderedList(FILE* input, FILE* output, int n) {
     fputs("</li>\n</ul>\n", output);
 }
 
+static void processBlockquote(char* line, FILE* input, FILE* output) {
+    fputs("<blockquote>\n", output);
+    do {
+        int offset = line[1] == ' ' ? 2 : 1;
+        processLine(line + offset, output);
+        if (peek(input) != '>')
+            break;
+    } while(readLine(input));
+    fputs("</blockquote>\n", output);
+}
+
 static void processParagraph(FILE* input, FILE* output) {
     fputs("<p>\n", output);
     processLine(LINE, output);
@@ -206,6 +217,10 @@ static void processParagraph(FILE* input, FILE* output) {
             fputs("</p>\n", output);
             processUnorderedList(input, output, 0);
             return;
+        } else if (startsWith(LINE, ">")) {
+            fputs("</p>\n", output);
+            processBlockquote(LINE, input, output);
+            return;
         } else {
             processLine(LINE, output);
         }
@@ -217,17 +232,6 @@ static void processHTML(FILE* input, FILE* output) {
     fputs(LINE, output);
     while(!isBlank(readLine(input)))
         fputs(LINE, output);
-}
-
-static void processBlockquote(char* line, FILE* input, FILE* output) {
-    fputs("<blockquote>\n", output);
-    do {
-        int offset = line[1] == ' ' ? 2 : 1;
-        processLine(line + offset, output);
-        if (peek(input) != '>')
-            break;
-    } while(readLine(input));
-    fputs("</blockquote>\n", output);
 }
 
 static void processFile(FILE* input, FILE* output) {
