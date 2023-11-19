@@ -329,12 +329,6 @@ static void processFootnote(char* line, FILE* input, FILE* output) {
     fputs("</p>\n", output);
 }
 
-static void processHTML(FILE* input, FILE* output) {
-    fputs(LINE, output);
-    while (!isBlank(readLine(input)))
-        fputs(LINE, output);
-}
-
 static void processFile(FILE* input, FILE* output) {
     while (readLine(input)) {
         size_t indent = strspn(LINE, " \t");
