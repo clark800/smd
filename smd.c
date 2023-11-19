@@ -98,7 +98,7 @@ static char* processLink(char* start, FILE* output) {
     if (title[0] == '^') {
         fputs("<sup><a href=\"#", output);
         fputr(title + 1, titleEnd, output);
-        fputs("\">*</sup>", output);
+        fputs("\">*</a></sup>", output);
         return titleEnd + 1;
     }
     char* paren = titleEnd + 1;
