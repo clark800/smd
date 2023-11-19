@@ -83,6 +83,13 @@ static char* processLessThan(char* start, FILE* output) {
     return end + 1;
 }
 
+static char* findClose(char* p, char* b) {
+    for (int count = 1; count > 0; count += (*p == *b ? 1 : -1))
+        if (!(p = strpbrk(++p, b)))
+            return NULL;
+    return p;
+}
+
 static char* processLink(char* start, FILE* output) {
     char* title = start + 1;
     char* titleEnd = strchr(title, ']');
@@ -94,9 +101,12 @@ static char* processLink(char* start, FILE* output) {
         fputs("\">*</sup>", output);
         return titleEnd + 1;
     }
-    char* href = titleEnd + 2;
-    char* hrefEnd = strchr(href, ')');
-    if (href[-1] != '(' || hrefEnd == NULL || hrefEnd == href)
+    char* paren = titleEnd + 1;
+    if (paren[0] != '(')
+        return start;
+    char* href = paren + 1;
+    char* hrefEnd = findClose(paren, "()");
+    if (hrefEnd == NULL || hrefEnd == href)
         return start;
     fputs("<a href=\"", output);
     fputr(href, hrefEnd, output);
