@@ -30,15 +30,33 @@ static size_t fputr(char* start, char* end, FILE* output) {
     return fwrite(start, sizeof(char), end - start, output);
 }
 
-static char* readLine(FILE* input) {
-    static char line[4096];
-    line[sizeof(line) - 1] = '\n';
-    char* result = fgets(line, sizeof(line), input);
-    if (line[sizeof(line) - 1] != '\n') {
+static char* getLine(FILE* input, int peek) {
+    static char peeked = 0, flipped = 0;
+    static char bufferA[4096], bufferB[4096];
+    char* line = flipped ? bufferB : bufferA;
+    char* next = flipped ? bufferA : bufferB;
+    if (peeked) {
+        peeked = peek;
+        flipped ^= !peek;
+        return next;
+    }
+    peeked = peek;
+    char* buffer = peek ? next : line;
+    buffer[4096 - 1] = '\n';
+    char* result = fgets(buffer, 4096, input);
+    if (buffer[4096 - 1] != '\n') {
         fputs("\nError: line too long", stderr);
         exit(1);
     }
     return result;
+}
+
+static char* peekLine(FILE* input) {
+    return getLine(input, 1);
+}
+
+static char* readLine(FILE* input) {
+    return getLine(input, 0);
 }
 
 static char* processAmpersand(char* start, FILE* output) {

@@ -7,9 +7,9 @@ a < b > c
 $$ math $$
 $$><<><&$$
 
-***This*** is ``*not* **code**
+***This*** is ``*not* **code\***
 
-<http://domain.com>
+<http://domain.com> [see below](#foot)
 
 ![Alt Text](image.png)
 
