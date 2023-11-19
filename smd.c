@@ -144,18 +144,19 @@ static char* processBackslash(char* start, FILE* output) {
 }
 
 static char* processVerbatim(char* start, char* end, FILE* output) {
-    char* p = start;
-    while (p < end) {
-        char* brk = strpbrk(p, "<>&");
-        if (brk == NULL || brk > end)
-            brk = end;
+    char* brk = NULL;
+    for (char* p = start; p < end; p = brk + 1) {
+        brk = strpbrk(p, "<>&");
+        if (brk == NULL || brk > end) {
+            fputr(p, end, output);
+            break;
+        }
         fputr(p, brk, output);
         switch (brk[0]) {
             case '<': fputs("&lt;", output); break;
             case '>': fputs("&gt;", output); break;
             case '&': fputs("&amp;", output); break;
         }
-        p = brk + 1;
     }
     return end;
 }
