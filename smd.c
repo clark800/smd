@@ -84,21 +84,6 @@ static char* processImage(char* start, FILE* output) {
     return hrefEnd + 1;
 }
 
-static char* processCode(char* start, FILE* output) {
-    char delimiter[] = "```";
-    size_t span = strspn(start, "`");
-    size_t length = span < 3 ? span : 3;
-    delimiter[length] = '\0';
-    char* content = start + length;
-    char* end = strstr(content, delimiter);
-    if (end == NULL)
-        return start;
-    fputs("<code>", output);
-    fwrite(content, sizeof(char), end - content, output);
-    fputs("</code>", output);
-    return end + length;
-}
-
 static char* processBackslash(char* start, FILE* output) {
     char* p = start;
     fputc(*p++, output);
@@ -127,6 +112,12 @@ static char* processWrap(char* start, char* wrap,
     fwrite(content, sizeof(char), end - content, output);
     fputs(closeTags[length-1], output);
     return end + length;
+}
+
+static char* processCode(char* start, FILE* output) {
+    char* openTags[] = {"<code>", "<code>", "<code>"};
+    char* closeTags[] = {"</code>", "</code>", "</code>"};
+    return processWrap(start, "```", openTags, closeTags, 1, output);
 }
 
 static char* processAsterisk(char* start, FILE* output) {
