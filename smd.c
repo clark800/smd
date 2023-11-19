@@ -296,17 +296,6 @@ static void processUnorderedList(char* line, FILE* input, FILE* output, int n) {
     fputs("</li>\n</ul>\n", output);
 }
 
-static void processBlockquote(char* line, FILE* input, FILE* output) {
-    fputs("<blockquote>\n", output);
-    do {
-        int offset = line[1] == ' ' ? 2 : 1;
-        processLine(line + offset, output);
-        if (peek(input) != '>')
-            break;
-    } while ((line = readLine(input)));
-    fputs("</blockquote>\n", output);
-}
-
 static void processMath(char* line, FILE* input, FILE* output) {
     line += 2;
     fputs("\\[", output);
@@ -321,12 +310,20 @@ static void processMath(char* line, FILE* input, FILE* output) {
     fputs("\\]\n", output);
 }
 
-static void processParagraph(char* line, FILE* input, FILE* output) {
+static char* skipBlockquote(char* line, int depth) {
+    for (int i = 0; line && i < depth; i++, line += (line[1] == ' ') ? 2 : 1)
+        if (line[0] != '>')
+            return NULL;
+    return line;
+}
+
+static void processParagraph(char* line, FILE* input, FILE* output, int depth) {
     fputs("<p>\n", output);
     char* interrupts[] = {"```", "---", "* ", "- ", ">", "$$", 0};
-    for (; !isBlank(line); line = readLine(input)) {
+    for (; !isBlank(line); line = skipBlockquote(readLine(input), depth)) {
         processLine(line, output);
-        if (startsWithAny(peekLine(input), interrupts))
+        char* nextLine = skipBlockquote(peekLine(input), depth);
+        if (!nextLine || startsWithAny(nextLine, interrupts))
             break;
     }
     fputs("</p>\n", output);
@@ -354,7 +351,7 @@ static void processFootnote(char* line, FILE* input, FILE* output) {
     char* name = line + 2;
     char* end = strchr(name, ']');
     if (end == NULL || end == name || end[1] != ':') {
-        processParagraph(line, input, output);
+        processParagraph(line, input, output, 0);
         return;
     }
     fputs("<p id=\"", output);
@@ -380,13 +377,27 @@ int processUnderline(char* line, FILE* input, FILE* output) {
     return 1;
 }
 
+static char* processBlockquote(int* depth, char* line, FILE* output) {
+    int newDepth = 0, lastDepth = *depth;
+    char* p;
+    for (p = line; p[0] == '>'; newDepth++, p += (p[1] == ' ') ? 2 : 1);
+    if (newDepth > lastDepth)
+        for (int i = 0; i < newDepth - lastDepth; i++)
+            fputs("<blockquote>\n", output);
+    if (newDepth < lastDepth)
+        for (int i = 0; i < lastDepth - newDepth; i++)
+            fputs("</blockquote>\n", output);
+    *depth = newDepth;
+    return p;
+}
+
 static void processFile(FILE* input, FILE* output) {
+    int depth = 0;
     char* line = NULL;
     while ((line = readLine(input))) {
+        line = processBlockquote(&depth, line, output);
         char* start = skip(line, " \t");
         if (start[0] == '\n') {
-        } else if (line[0] == '>') {
-            processBlockquote(line, input, output);
         } else if (startsWith(line, "* ")) {
             processUnorderedList(line, input, output, 0);
         } else if (startsWith(line, "- ")) {
@@ -395,7 +406,7 @@ static void processFile(FILE* input, FILE* output) {
             fputs("<hr>\n", output);
         } else if (startsWith(line, "```")) {
             processCodeFence(line, input, output);
-        } else if (startsWith(line, "[^")) {
+        } else if (depth == 0 && startsWith(line, "[^")) {
             processFootnote(line, input, output);
         } else if (startsWith(line, "$$")) {
             processMath(line, input, output);
@@ -404,7 +415,7 @@ static void processFile(FILE* input, FILE* output) {
                 continue;
             if (processUnderline(line, input, output))
                 continue;
-            processParagraph(line, input, output);
+            processParagraph(line, input, output, depth);
         }
     }
 }
