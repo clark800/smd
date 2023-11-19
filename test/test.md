@@ -1,11 +1,11 @@
 Title
 =====
-Paragraph & &amp; $math$ $not math $math$ ``code``
+Paragraph & &amp; $math$ $not math $math$ ``a < b``
 $$ math $$
 a < b > c
 
 $$ math $$
-$$math$$
+$$><<><&$$
 
 ***This*** is ``*not* **code**
 

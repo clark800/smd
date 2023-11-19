@@ -47,7 +47,7 @@ static char* processAmpersand(char* start, FILE* output) {
 }
 
 static char* processEscape(char* start, FILE* output) {
-    switch(start[0]) {
+    switch (start[0]) {
         case '<': fputs("&lt;", output); break;
         case '>': fputs("&gt;", output); break;
         case '&': return processAmpersand(start, output);
@@ -120,6 +120,23 @@ static char* processBackslash(char* start, FILE* output) {
     return p;
 }
 
+static char* processVerbatim(char* start, char* end, FILE* output) {
+    char* p = start;
+    while (p < end) {
+        char* brk = strpbrk(p, "<>&");
+        if (brk == NULL || brk > end)
+            brk = end;
+        fwrite(p, sizeof(char), brk - p, output);
+        switch (brk[0]) {
+            case '<': fputs("&lt;", output); break;
+            case '>': fputs("&gt;", output); break;
+            case '&': fputs("&amp;", output); break;
+        }
+        p = brk + 1;
+    }
+    return end;
+}
+
 static char* processWrap(char* start, char* wrap, int tightbits,
         char* openTags[], char* closeTags[], FILE* output) {
     size_t maxlen = strlen(wrap);
@@ -138,7 +155,7 @@ static char* processWrap(char* start, char* wrap, int tightbits,
     if (end == NULL || (tight && (isspace(content[0]) || isspace(end[-1]))))
         return start;
     fputs(openTags[length-1], output);
-    fwrite(content, sizeof(char), end - content, output);
+    processVerbatim(content, end, output);
     fputs(closeTags[length-1], output);
     return end + length;
 }
@@ -221,14 +238,14 @@ static void processCodeFence(char* line, FILE* input, FILE* output) {
     } else {
         fputs("<pre>\n<code>\n", output);
     }
-    while(!feof(input) && !startsWith(readLine(input), delimiter))
+    while (!feof(input) && !startsWith(readLine(input), delimiter))
         fputs(LINE, output);
     fputs("</code>\n</pre>\n", output);
 }
 
 static void processUnorderedList(FILE* input, FILE* output, int n) {
     fputs("<ul>\n<li>\n", output);
-    for(int i = 0;; i++) {
+    for (int i = 0;; i++) {
         int indent = strspn(LINE, " \t");
         if (startsWith(LINE + indent, "* ")) {
             if (indent < n) {
@@ -259,14 +276,14 @@ static void processBlockquote(char* line, FILE* input, FILE* output) {
         processLine(line + offset, output);
         if (peek(input) != '>')
             break;
-    } while(readLine(input));
+    } while (readLine(input));
     fputs("</blockquote>\n", output);
 }
 
 static void processParagraph(FILE* input, FILE* output) {
     fputs("<p>\n", output);
     processLine(LINE, output);
-    while(!isBlank(readLine(input))) {
+    while (!isBlank(readLine(input))) {
         if (startsWith(LINE, "```")) {
             fputs("</p>\n", output);
             processCodeFence(LINE, input, output);
@@ -288,12 +305,12 @@ static void processParagraph(FILE* input, FILE* output) {
 
 static void processHTML(FILE* input, FILE* output) {
     fputs(LINE, output);
-    while(!isBlank(readLine(input)))
+    while (!isBlank(readLine(input)))
         fputs(LINE, output);
 }
 
 static void processFile(FILE* input, FILE* output) {
-    while(readLine(input)) {
+    while (readLine(input)) {
         size_t indent = strspn(LINE, " \t");
         if (LINE[indent] == '\n') {
         } else if (LINE[0] == '#') {
