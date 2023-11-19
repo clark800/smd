@@ -3,8 +3,6 @@
 #include <string.h>
 #include <ctype.h>
 
-static char LINE[4096];
-
 static int peek(FILE* input) {
     int c = fgetc(input);
     return ungetc(c, input);
@@ -30,9 +28,10 @@ static int isBlank(char* line) {
 }
 
 static char* readLine(FILE* input) {
-    LINE[sizeof(LINE) - 1] = '\n';
-    char* result = fgets(LINE, sizeof(LINE), input);
-    if (LINE[sizeof(LINE) - 1] != '\n') {
+    static char line[4096];
+    line[sizeof(line) - 1] = '\n';
+    char* result = fgets(line, sizeof(line), input);
+    if (line[sizeof(line) - 1] != '\n') {
         fputs("Line too long", stderr);
         exit(1);
     }
