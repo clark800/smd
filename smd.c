@@ -36,7 +36,7 @@ static char* readLine(FILE* input) {
     line[sizeof(line) - 1] = '\n';
     char* result = fgets(line, sizeof(line), input);
     if (line[sizeof(line) - 1] != '\n') {
-        fputs("Line too long", stderr);
+        fputs("\nError: line too long", stderr);
         exit(1);
     }
     return result;
