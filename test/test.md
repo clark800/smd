@@ -44,3 +44,5 @@ Paragraph
 ```
 fenced
 ```
+
+[^foot]: My footnote

@@ -17,6 +17,10 @@ static char* chomp(char* line) {
     return line;
 }
 
+static char* skipWhitespace(char* line) {
+    return line + strspn(line, " \t");
+}
+
 static int startsWith(char* string, char* prefix) {
     return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
 }
@@ -309,6 +313,22 @@ static void processParagraph(FILE* input, FILE* output) {
     fputs("</p>\n", output);
 }
 
+static void processFootnote(char* line, FILE* input, FILE* output) {
+    char* name = line + 2;
+    char* end = strchr(name, ']');
+    if (end == NULL || end == name || end[1] != ':') {
+        processParagraph(input, output);
+        return;
+    }
+    fputs("<p id=\"", output);
+    fwrite(name, sizeof(char), end - name, output);
+    fputs("\">\n", output);
+    processLine(skipWhitespace(end + 2), output);
+    while (isspace(peek(input)))
+        processLine(readLine(input), output);
+    fputs("</p>\n", output);
+}
+
 static void processHTML(FILE* input, FILE* output) {
     fputs(LINE, output);
     while (!isBlank(readLine(input)))
@@ -329,6 +349,8 @@ static void processFile(FILE* input, FILE* output) {
             fputs("<hr>\n", output);
         } else if (startsWith(LINE, "```")) {
             processCodeFence(LINE, input, output);
+        } else if (startsWith(LINE, "[^")) {
+            processFootnote(LINE, input, output);
         } else {
             int next = peek(input);
             if (next == '=') {
