@@ -79,11 +79,17 @@ static char* processLessThan(char* start, FILE* output) {
 static char* processLink(char* start, FILE* output) {
     char* title = start + 1;
     char* titleEnd = strchr(title, ']');
-    if (titleEnd == NULL || titleEnd == title || titleEnd[1] != '(')
+    if (titleEnd == NULL || titleEnd == title)
         return start;
+    if (title[0] == '^') {
+        fputs("<sup><a href=\"#", output);
+        fwrite(title + 1, sizeof(char), titleEnd - (title + 1), output);
+        fputs("\">*</sup>", output);
+        return titleEnd + 1;
+    }
     char* href = titleEnd + 2;
     char* hrefEnd = strchr(href, ')');
-    if (hrefEnd == NULL || hrefEnd == href)
+    if (href[-1] != '(' || hrefEnd == NULL || hrefEnd == href)
         return start;
     fputs("<a href=\"", output);
     fwrite(href, sizeof(char), hrefEnd - href, output);

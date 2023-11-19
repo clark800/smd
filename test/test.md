@@ -15,7 +15,7 @@ $$><<><&$$
 
 \[Not a link](page.html)
 
-Here is a list:
+Here is a list:[^foot]
 * One
   * A
   * B
