@@ -2,7 +2,7 @@ Title
 =====
 Paragraph ``code``
 
-This is ``not code
+***This*** is ``*not* **code**
 
 <http://domain.com>
 

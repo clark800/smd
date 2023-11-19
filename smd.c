@@ -89,12 +89,12 @@ static char* processCode(char* start, FILE* output) {
     size_t span = strspn(start, "`");
     size_t length = span < 3 ? span : 3;
     delimiter[length] = '\0';
-    char* code = start + length;
-    char* end = strstr(code, delimiter);
+    char* content = start + length;
+    char* end = strstr(content, delimiter);
     if (end == NULL)
         return start;
     fputs("<code>", output);
-    fwrite(code, sizeof(char), end - code, output);
+    fwrite(content, sizeof(char), end - content, output);
     fputs("</code>", output);
     return end + length;
 }
@@ -107,10 +107,27 @@ static char* processBackslash(char* start, FILE* output) {
     return p;
 }
 
+static char* processAsterisk(char* start, FILE* output) {
+    char* openTags[] = {"<em>", "<strong>", "<em><strong>"};
+    char* closeTags[] = {"</em>", "</strong>", "</strong></em>"};
+    char delimiter[] = "***";
+    size_t span = strspn(start, "*");
+    size_t length = span < 3 ? span : 3;
+    delimiter[length] = '\0';
+    char* content = start + length;
+    char* end = strstr(content, delimiter);
+    if (end == NULL || isspace(content[0]) || isspace(end[-1]))
+        return start;
+    fputs(openTags[length-1], output);
+    fwrite(content, sizeof(char), end - content, output);
+    fputs(closeTags[length-1], output);
+    return end + length;
+}
+
 static void processLine(char* line, FILE* output) {
     char* p = line;
     while (*p != 0) {
-        char* brk = strpbrk(p, "`<![\\");
+        char* brk = strpbrk(p, "`*<![\\");
         if (brk == NULL) {
             fputs(p, output);
             return;
@@ -118,6 +135,7 @@ static void processLine(char* line, FILE* output) {
         fwrite(p, sizeof(char), brk - p, output);
         switch (*brk) {
             case '`': p = processCode(brk, output); break;
+            case '*': p = processAsterisk(brk, output); break;
             case '<': p = processSimpleLink(brk, output); break;
             case '[': p = processLink(brk, output); break;
             case '!': p = processImage(brk, output); break;
