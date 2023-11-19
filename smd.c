@@ -35,7 +35,7 @@ static char* readLine(FILE* input) {
     return result;
 }
 
-static char* processSimpleLink(char* start, FILE* output) {
+static char* processAutoLink(char* start, FILE* output) {
     char* href = start + 1;
     char* hrefEnd = strchr(href, '>');
     if (hrefEnd == NULL || hrefEnd == href)
@@ -136,7 +136,7 @@ static void processLine(char* line, FILE* output) {
         switch (*brk) {
             case '`': p = processCode(brk, output); break;
             case '*': p = processAsterisk(brk, output); break;
-            case '<': p = processSimpleLink(brk, output); break;
+            case '<': p = processAutoLink(brk, output); break;
             case '[': p = processLink(brk, output); break;
             case '!': p = processImage(brk, output); break;
             case '\\': p = processBackslash(brk, output); break;
