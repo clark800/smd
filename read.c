@@ -50,6 +50,8 @@ char* openBlocks(char* line) {
                 fputs("<blockquote>\n", output);
                 line += line[1] == ' ' ? 2 : 1;
                 break;
+            case '-':
+            case '+':
             case '*':
                 if (line[1] != ' ')
                     return line;
@@ -66,6 +68,8 @@ void closeLevel(char index) {
     for (unsigned char i = 0; i < length - index; i++) {
         switch (stack[length - i - 1]) {
             case '>': fputs("</blockquote>\n", output); break;
+            case '-':
+            case '+':
             case '*': fputs("</li>\n</ul>\n", output); break;
         }
     }
@@ -79,26 +83,31 @@ char* closeBlocks(char* line) {
         return NULL;
     }
     for (; level < length; level++) {
-        if (stack[level] == '>') {
-            if (line[0] == '>') {
-                line += line[1] == ' ' ? 2 : 1;
-            } else {
+        switch (stack[level]) {
+            case '>':
+                if (line[0] == stack[level]) {
+                    line += line[1] == ' ' ? 2 : 1;
+                } else {
+                    closeLevel(level);
+                    return line;
+                }
                 break;
-            }
-        } else if (stack[level] == '*') {
-            if (line[0] == '*' && line[1] == ' ') {
-                closeLevel(++level);
-                fputs("</li>\n<li>\n", output);
-                line += 2;
+            case '-':
+            case '+':
+            case '*':
+                if (line[0] == stack[level] && line[1] == ' ') {
+                    closeLevel(++level);
+                    fputs("</li>\n<li>\n", output);
+                    return line + 2;
+                } else if (line[0] == ' ' && line[1] == ' ') {
+                    line += 2;
+                } else {
+                    closeLevel(level);
+                    return line;
+                }
                 break;
-            } else if (line[0] == ' ' && line[1] == ' ') {
-                line += 2;
-            } else {
-                break;
-            }
         }
     }
-    closeLevel(level);
     return line;
 }
 
