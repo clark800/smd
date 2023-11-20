@@ -2,7 +2,9 @@
 #include <stdlib.h>
 
 static int depth = 0;
-static FILE *input, *output;
+static char stack[256] = {0};
+static unsigned char length = 0;
+static FILE *input = NULL, *output = NULL;
 
 void initContext(FILE* in, FILE* out) {
     input = in;
@@ -30,35 +32,74 @@ static char* getLine(FILE* input, int peek) {
     return result;
 }
 
-// strip up to 'depth' levels of blockquote
-static char* skipBlockquote(char* line) {
-    for (int i = 0; line && line[0] == '>' && i < depth; i++)
-        line += (line[1] == ' ') ? 2 : 1;
+// skip prefixes that are part of the current block
+static char* skipPrefixes(char* line) {
+    for (int i = 0; i < length; i++) {
+        if (stack[i] == '>' && line[0] == '>')
+            line += line[1] == ' ' ? 2 : 1;
+        if (stack[i] == '*' && line[0] == ' ')
+            line += line[1] == ' ' ? 2 : 1;
+    }
     return line;
 }
 
-static int getDepth(char* line) {
-    int d = 0;
-    for (; line && *line == '>'; d++)
-        line += (line[1] == ' ') ? 2 : 1;
-    return d;
+void closeBlocks(char index) {
+    for (unsigned char i = 0; i < length - index; i++) {
+        if (stack[length - i - 1] == '>')
+            fputs("</blockquote>\n", output);
+        else if (stack[length - i - 1] == '*')
+            fputs("</li>\n</ul>\n", output);
+    }
+    length = index;
 }
 
 char* beginBlock() {
+    unsigned char level = 0;
     char* line = getLine(input, 0);
-    int newDepth = getDepth(line);
-    if (newDepth > depth)
-        for (int i = 0; i < newDepth - depth; i++)
+    if (line == NULL) {
+        closeBlocks(0);
+        return NULL;
+    }
+    // first check how much of the stack is preserved and close blocks
+    for (; level < length; level++) {
+        if (stack[level] == '>') {
+            if (line[0] == '>' && line[1] == ' ') {
+                line += 2;
+            } else {
+                break;
+            }
+        } else if (stack[level] == '*') {
+            if (line[0] == '*' && line[1] == ' ') {
+                closeBlocks(++level);
+                fputs("</li>\n<li>\n", output);
+                line += 2;
+                break;
+            } else if (line[0] == ' ' && line[1] == ' ') {
+                line += 2;
+            } else {
+                break;
+            }
+        }
+    }
+    closeBlocks(level);
+
+    // finally we add new stack elements still remaining in line
+    for (;; line += 2) {
+        if (line[0] == '>' && line[1] == ' ') {
             fputs("<blockquote>\n", output);
-    if (newDepth < depth)
-        for (int i = 0; i < depth - newDepth; i++)
-            fputs("</blockquote>\n", output);
-    depth = newDepth;
-    return skipBlockquote(line);
+            stack[length++] = '>';
+        } else if (line[0] == '*' && line[1] == ' ') {
+            fputs("<ul>\n<li>\n", output);
+            stack[length++] = '*';
+        } else {
+            break;
+        }
+    }
+    return line;
 }
 
 char* peekLine() {
-    return skipBlockquote(getLine(input, 1));
+    return skipPrefixes(getLine(input, 1));
 }
 
 int peek() {
@@ -67,5 +108,5 @@ int peek() {
 }
 
 char* readLine() {
-    return skipBlockquote(getLine(input, 0));
+    return skipPrefixes(getLine(input, 0));
 }

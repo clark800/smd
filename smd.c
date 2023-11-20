@@ -121,7 +121,7 @@ static char* processImage(char* start, FILE* output) {
         return start;
     fputs("<img src=\"", output);
     fputr(href, hrefEnd, output);
-    fputs(" alt=\"", output);
+    fputs("\" alt=\"", output);
     fputr(title, titleEnd, output);
     fputs("\">", output);
     return hrefEnd + 1;
@@ -237,33 +237,6 @@ static void processCodeFence(char* line, FILE* output) {
     fputs("</code>\n</pre>\n", output);
 }
 
-static void processUnorderedList(char* line, FILE* output, int n) {
-    fputs("<ul>\n<li>\n", output);
-    char* bullets[] = {"* ", "- ", 0};
-    for (int i = 0;; i++) {
-        int indent = strspn(line, " \t");
-        if (startsWithAny(line + indent, bullets)) {
-            if (indent < n) {
-                break;
-            } else if (indent > n) {
-                processUnorderedList(line, output, indent);
-                continue;  // line still needs to be processed
-            } if (indent == n) {
-                if (i != 0)
-                    fputs("</li>\n<li>\n", output);
-                processLine(line + indent + 2, output);
-            }
-        } else if (!isBlank(line)) {
-            processLine(line + indent, output);
-        }
-        char* next = peekLine();
-        if (!next || !isspace(next[0]) && !startsWithAny(next, bullets))
-            break;
-        line = readLine();
-    }
-    fputs("</li>\n</ul>\n", output);
-}
-
 static void processMath(char* line, FILE* output) {
     line += 2;
     fputs("\\[", output);
@@ -342,10 +315,6 @@ static void processFile(FILE* output) {
     while ((line = beginBlock())) {
         char* start = skip(line, " \t");
         if (start[0] == '\n') {
-        } else if (startsWith(line, "* ")) {
-            processUnorderedList(line, output, 0);
-        } else if (startsWith(line, "- ")) {
-            processUnorderedList(line, output, 0);
         } else if (startsWith(line, "---")) {
             fputs("<hr>\n", output);
         } else if (startsWith(line, "```")) {

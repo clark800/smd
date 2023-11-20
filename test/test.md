@@ -20,6 +20,9 @@ Here is a list:[^foot]
   * A
   * B
 * Two
+  ```
+  fenced
+  ```
   - C
   - D
 * Three
