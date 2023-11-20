@@ -42,19 +42,9 @@ static char* skipPrefixes(char* line) {
     return line;
 }
 
-void closeBlocks(char index) {
-    for (unsigned char i = 0; i < length - index; i++) {
-        switch (stack[length - i - 1]) {
-            case '>': fputs("</blockquote>\n", output); break;
-            case '*': fputs("</li>\n</ul>\n", output); break;
-        }
-    }
-    length = index;
-}
-
 char* openBlocks(char* line) {
     while(1) {
-        char c = line[0];
+        char c = line ? line[0] : 0;
         switch (c) {
             case '>':
                 fputs("<blockquote>\n", output);
@@ -72,14 +62,22 @@ char* openBlocks(char* line) {
     }
 }
 
-char* beginBlock() {
+void closeLevel(char index) {
+    for (unsigned char i = 0; i < length - index; i++) {
+        switch (stack[length - i - 1]) {
+            case '>': fputs("</blockquote>\n", output); break;
+            case '*': fputs("</li>\n</ul>\n", output); break;
+        }
+    }
+    length = index;
+}
+
+char* closeBlocks(char* line) {
     unsigned char level = 0;
-    char* line = getLine(input, 0);
     if (line == NULL) {
-        closeBlocks(0);
+        closeLevel(0);
         return NULL;
     }
-    // first check how much of the stack is preserved and close blocks
     for (; level < length; level++) {
         if (stack[level] == '>') {
             if (line[0] == '>') {
@@ -89,7 +87,7 @@ char* beginBlock() {
             }
         } else if (stack[level] == '*') {
             if (line[0] == '*' && line[1] == ' ') {
-                closeBlocks(++level);
+                closeLevel(++level);
                 fputs("</li>\n<li>\n", output);
                 line += 2;
                 break;
@@ -100,8 +98,12 @@ char* beginBlock() {
             }
         }
     }
-    closeBlocks(level);
-    return openBlocks(line);
+    closeLevel(level);
+    return line;
+}
+
+char* beginBlock() {
+    return openBlocks(closeBlocks(getLine(input, 0)));
 }
 
 char* peekLine() {
