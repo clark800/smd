@@ -62,7 +62,7 @@ static void printEscaped(char* start, char* end, FILE* output) {
     }
 }
 
-static char* processLessThan(char* start, FILE* output) {
+static char* processTag(char* start, FILE* output) {
     char* content = start + 1;
     if (isspace(content[0]))
         return printEscape(start, output);
@@ -174,13 +174,13 @@ static char* processWrap(char* start, char* wrap, int tightbits,
     return end + length;
 }
 
-static char* processCode(char* start, FILE* output) {
+static char* processInlineCode(char* start, FILE* output) {
     static char* openTags[] = {"<code>", "<code>", "<code>"};
     static char* closeTags[] = {"</code>", "</code>", "</code>"};
     return processWrap(start, "```", 0, openTags, closeTags, output);
 }
 
-static char* processAsterisk(char* start, FILE* output) {
+static char* processEmphasis(char* start, FILE* output) {
     static char* openTags[] = {"<em>", "<strong>", "<em><strong>"};
     static char* closeTags[] = {"</em>", "</strong>", "</strong></em>"};
     return processWrap(start, "***", 7, openTags, closeTags, output);
@@ -200,10 +200,10 @@ static void processInlines(char* line, FILE* output) {
         if (brk == NULL)
             return;
         switch (*brk) {
-            case '`': p = processCode(brk, output); break;
+            case '`': p = processInlineCode(brk, output); break;
             case '$': p = processInlineMath(brk, output); break;
-            case '*': p = processAsterisk(brk, output); break;
-            case '<': p = processLessThan(brk, output); break;
+            case '*': p = processEmphasis(brk, output); break;
+            case '<': p = processTag(brk, output); break;
             case '!': p = processImage(brk, output); break;
             case '[': p = processLink(brk, output); break;
             case '\\': p = processBackslash(brk, output); break;
@@ -228,7 +228,7 @@ static void processCodeFence(char* line, FILE* output) {
     fputs("</code>\n</pre>\n", output);
 }
 
-static void processMath(char* line, FILE* output) {
+static void processMathBlock(char* line, FILE* output) {
     line += 2;
     fputs("\\[", output);
     do {
@@ -260,6 +260,20 @@ static int processHeading(char* line, FILE* output) {
     return 1;
 }
 
+int processUnderline(char* line, FILE* output) {
+    char* next = peekLine();
+    char level = 0;
+    if (next && next[0] == '=' && skip(skip(next, "="), " \t")[0] == '\n')
+        level = 1;
+    if (next && next[0] == '-' && skip(skip(next, "-"), " \t")[0] == '\n')
+        level = 2;
+    if (level == 0)
+        return 0;
+    printHeading(line, level, output);
+    readLine();
+    return 1;
+}
+
 static int processFootnote(char* line, FILE* output) {
     char* name = line + 2;
     char* end = strchr(name, ']');
@@ -272,20 +286,6 @@ static int processFootnote(char* line, FILE* output) {
     while (isspace(peek()))  // allows blank lines
         processInlines(readLine(), output);
     fputs("</p>\n", output);
-    return 1;
-}
-
-int processUnderline(char* line, FILE* output) {
-    char* next = peekLine();
-    char level = 0;
-    if (next && next[0] == '=' && skip(skip(next, "="), " \t")[0] == '\n')
-        level = 1;
-    if (next && next[0] == '-' && skip(skip(next, "-"), " \t")[0] == '\n')
-        level = 2;
-    if (level == 0)
-        return 0;
-    printHeading(line, level, output);
-    readLine();
     return 1;
 }
 
@@ -316,7 +316,7 @@ static void processBlock(char* line, FILE* output) {
     else if (startsWith(line, "```"))
         processCodeFence(line, output);
     else if (startsWith(line, "$$"))
-        processMath(line, output);
+        processMathBlock(line, output);
     else {
         if (processHeading(line, output))
             return;
