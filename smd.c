@@ -221,10 +221,7 @@ static void processInlines(char* line, FILE* output) {
 }
 
 static void processCodeFence(char* line, FILE* output) {
-    char delimiter[] = "````````````````";
     size_t length = strspn(line, "`");
-    if (length < sizeof(delimiter))
-        delimiter[length] = '\0';
     char* language = chomp(skip(line + length, " \t"));
     if (language[0] != '\0') {
         fputs("<pre>\n<code class=\"language-", output);
@@ -233,7 +230,7 @@ static void processCodeFence(char* line, FILE* output) {
     } else {
         fputs("<pre>\n<code>\n", output);
     }
-    while ((line = readLine()) && !startsWith(line, delimiter))
+    while ((line = readLine()) && strspn(line, "`") < length)
         fputs(line, output);
     fputs("</code>\n</pre>\n", output);
 }
