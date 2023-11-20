@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static int depth = 0;
 static char stack[256] = {0};
 static unsigned char length = 0;
 static FILE *input = NULL, *output = NULL;
@@ -55,17 +54,21 @@ void closeBlocks(char index) {
 
 char* openBlocks(char* line) {
     while(1) {
-        if (line[0] == '>') {
-            fputs("<blockquote>\n", output);
-            stack[length++] = '>';
-            line += line[1] == ' ' ? 2 : 1;
-        } else if (line[0] == '*' && line[1] == ' ') {
-            fputs("<ul>\n<li>\n", output);
-            stack[length++] = '*';
-            line += 2;
-        } else {
-            return line;
+        char c = line[0];
+        switch (c) {
+            case '>':
+                fputs("<blockquote>\n", output);
+                line += line[1] == ' ' ? 2 : 1;
+                break;
+            case '*':
+                if (line[1] != ' ')
+                    return line;
+                fputs("<ul>\n<li>\n", output);
+                line += 2;
+                break;
+           default: return line;
         }
+        stack[length++] = c;
     }
 }
 
