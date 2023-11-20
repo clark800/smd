@@ -33,9 +33,9 @@ Here is a list:[^foot]
 - B
 
 Ordered
-. One
-. Two
-. Three
+1. One
+2. Two
+3. Three
 
 Inline <a href="page.html">link</a>
 $$

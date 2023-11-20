@@ -250,13 +250,15 @@ static void processMath(char* line, FILE* output) {
 }
 
 static int isParagraphInterrupt(char* line) {
-    char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", ". ", ">",
+    char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", ">",
         "# ", "## ", "### ", "#### ", "##### ", "###### "};
     if (line == NULL)
         return 1;
     for (int i = 0; i < sizeof(interrupts)/sizeof(char*); i++)
         if (startsWith(line, interrupts[i]))
             return 1;
+    if (isdigit(line[0]) && line[1] == '.' && line[2] == ' ')
+        return 1;
     return 0;
 }
 
@@ -282,7 +284,7 @@ static void printHeading(char* title, int level, FILE* output) {
 
 static int processHeading(char* line, FILE* output) {
     size_t level = strspn(line, "#");
-    if (level > 6 || !isblank(*(line + level)))
+    if (level == 0 || level > 6 || !isblank(*(line + level)))
         return 0;
     printHeading(skip(line + level, " \t"), level, output);
     return 1;
