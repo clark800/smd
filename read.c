@@ -4,7 +4,7 @@
 #include <ctype.h>
 
 static char stack[256] = {0};
-static unsigned char length = 0;
+static unsigned char depth = 0;
 static FILE *input = NULL, *output = NULL;
 
 void initContext(FILE* in, FILE* out) {
@@ -34,7 +34,7 @@ static char* getLine(FILE* input, int peek) {
 }
 
 static char* skipPrefixes(char* line) {
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < depth; i++) {
         char c = stack[i];
         if (c == '>' && line[0] == '>')
             line += line[1] == ' ' ? 2 : 1;
@@ -71,13 +71,13 @@ char* openBlocks(char* line) {
                 }
                 return line;
         }
-        stack[length++] = c;
+        stack[depth++] = c;
     }
 }
 
 void closeLevel(char index) {
-    for (unsigned char i = 0; i < length - index; i++) {
-        switch (stack[length - i - 1]) {
+    for (unsigned char i = 0; i < depth - index; i++) {
+        switch (stack[depth - i - 1]) {
             case '>': fputs("</blockquote>\n", output); break;
             case '-':
             case '+':
@@ -85,7 +85,7 @@ void closeLevel(char index) {
             case '.': fputs("</li>\n</ol>\n", output); break;
         }
     }
-    length = index;
+    depth = index;
 }
 
 char* closeBlocks(char* line) {
@@ -94,7 +94,7 @@ char* closeBlocks(char* line) {
         closeLevel(0);
         return NULL;
     }
-    for (; level < length; level++) {
+    for (; level < depth; level++) {
         switch (stack[level]) {
             case '>':
                 if (line[0] == stack[level]) {
