@@ -2,10 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
-static int peek(FILE* input) {
-    return ungetc(fgetc(input), input);
-}
+#include "read.h"
 
 static char* chomp(char* line) {
     size_t length = strlen(line);
@@ -35,35 +32,6 @@ static int isBlank(char* line) {
 
 static size_t fputr(char* start, char* end, FILE* output) {
     return fwrite(start, sizeof(char), end - start, output);
-}
-
-static char* getLine(FILE* input, int peek) {
-    static char peeked = 0, flipped = 0;
-    static char bufferA[4096], bufferB[4096];
-    char* line = flipped ? bufferB : bufferA;
-    char* next = flipped ? bufferA : bufferB;
-    if (peeked) {
-        peeked = peek;
-        flipped ^= !peek;
-        return next;
-    }
-    peeked = peek;
-    char* buffer = peek ? next : line;
-    buffer[4096 - 1] = '\n';
-    char* result = fgets(buffer, 4096, input);
-    if (buffer[4096 - 1] != '\n') {
-        fputs("\nError: line too long", stderr);
-        exit(1);
-    }
-    return result;
-}
-
-static char* peekLine(FILE* input) {
-    return getLine(input, 1);
-}
-
-static char* readLine(FILE* input) {
-    return getLine(input, 0);
 }
 
 static char* processAmpersand(char* start, FILE* output) {
@@ -251,7 +219,7 @@ static void processLine(char* line, FILE* output) {
     }
 }
 
-static void processCodeFence(char* line, FILE* input, FILE* output) {
+static void processCodeFence(char* line, FILE* output) {
     char delimiter[] = "````````````````";
     size_t length = strspn(line, "`");
     if (length < sizeof(delimiter))
@@ -264,12 +232,12 @@ static void processCodeFence(char* line, FILE* input, FILE* output) {
     } else {
         fputs("<pre>\n<code>\n", output);
     }
-    while ((line = readLine(input)) && !startsWith(line, delimiter))
+    while ((line = readLine()) && !startsWith(line, delimiter))
         fputs(line, output);
     fputs("</code>\n</pre>\n", output);
 }
 
-static void processUnorderedList(char* line, FILE* input, FILE* output, int n) {
+static void processUnorderedList(char* line, FILE* output, int n) {
     fputs("<ul>\n<li>\n", output);
     char* bullets[] = {"* ", "- ", 0};
     for (int i = 0;; i++) {
@@ -278,7 +246,7 @@ static void processUnorderedList(char* line, FILE* input, FILE* output, int n) {
             if (indent < n) {
                 break;
             } else if (indent > n) {
-                processUnorderedList(line, input, output, indent);
+                processUnorderedList(line, output, indent);
                 continue;  // line still needs to be processed
             } if (indent == n) {
                 if (i != 0)
@@ -288,15 +256,15 @@ static void processUnorderedList(char* line, FILE* input, FILE* output, int n) {
         } else if (!isBlank(line)) {
             processLine(line + indent, output);
         }
-        char* next = peekLine(input);
+        char* next = peekLine();
         if (!next || !isspace(next[0]) && !startsWithAny(next, bullets))
             break;
-        line = readLine(input);
+        line = readLine();
     }
     fputs("</li>\n</ul>\n", output);
 }
 
-static void processMath(char* line, FILE* input, FILE* output) {
+static void processMath(char* line, FILE* output) {
     line += 2;
     fputs("\\[", output);
     do {
@@ -306,23 +274,16 @@ static void processMath(char* line, FILE* input, FILE* output) {
         processVerbatim(line, end, output);
         if (*end == '$')
             break;
-    } while ((line = readLine(input)));
+    } while ((line = readLine()));
     fputs("\\]\n", output);
 }
 
-static char* skipBlockquote(char* line, int depth) {
-    for (int i = 0; line && i < depth; i++, line += (line[1] == ' ') ? 2 : 1)
-        if (line[0] != '>')
-            return NULL;
-    return line;
-}
-
-static void processParagraph(char* line, FILE* input, FILE* output, int depth) {
+static void processParagraph(char* line, FILE* output) {
     fputs("<p>\n", output);
     char* interrupts[] = {"```", "---", "* ", "- ", ">", "$$", 0};
-    for (; !isBlank(line); line = skipBlockquote(readLine(input), depth)) {
+    for (; !isBlank(line); line = readLine()) {
         processLine(line, output);
-        char* nextLine = skipBlockquote(peekLine(input), depth);
+        char* nextLine = peekLine();
         if (!nextLine || startsWithAny(nextLine, interrupts))
             break;
     }
@@ -339,7 +300,7 @@ static void printHeading(char* title, int level, FILE* output) {
     fputs(closeTag, output);
 }
 
-static int processHeading(char* line, FILE* input, FILE* output) {
+static int processHeading(char* line, FILE* output) {
     size_t level = strspn(line, "#");
     if (level > 6 || !isblank(*(line + level)))
         return 0;
@@ -347,24 +308,23 @@ static int processHeading(char* line, FILE* input, FILE* output) {
     return 1;
 }
 
-static void processFootnote(char* line, FILE* input, FILE* output) {
+static int processFootnote(char* line, FILE* output) {
     char* name = line + 2;
     char* end = strchr(name, ']');
-    if (end == NULL || end == name || end[1] != ':') {
-        processParagraph(line, input, output, 0);
-        return;
-    }
+    if (end == NULL || end == name || end[1] != ':')
+        return 0;
     fputs("<p id=\"", output);
     fputr(name, end, output);
     fputs("\">\n", output);
     processLine(skip(end + 2, " \t"), output);
-    while (isspace(peek(input)))
-        processLine(readLine(input), output);
+    while (isspace(peek()))
+        processLine(readLine(), output);
     fputs("</p>\n", output);
+    return 1;
 }
 
-int processUnderline(char* line, FILE* input, FILE* output) {
-    char* next = peekLine(input);
+int processUnderline(char* line, FILE* output) {
+    char* next = peekLine();
     char level = 0;
     if (next && next[0] == '=' && skip(skip(next, "="), " \t")[0] == '\n')
         level = 1;
@@ -373,53 +333,38 @@ int processUnderline(char* line, FILE* input, FILE* output) {
     if (level == 0)
         return 0;
     printHeading(line, level, output);
-    readLine(input);
+    readLine();
     return 1;
 }
 
-static char* processBlockquote(int* depth, char* line, FILE* output) {
-    int newDepth = 0, lastDepth = *depth;
-    char* p;
-    for (p = line; p[0] == '>'; newDepth++, p += (p[1] == ' ') ? 2 : 1);
-    if (newDepth > lastDepth)
-        for (int i = 0; i < newDepth - lastDepth; i++)
-            fputs("<blockquote>\n", output);
-    if (newDepth < lastDepth)
-        for (int i = 0; i < lastDepth - newDepth; i++)
-            fputs("</blockquote>\n", output);
-    *depth = newDepth;
-    return p;
-}
-
-static void processFile(FILE* input, FILE* output) {
-    int depth = 0;
+static void processFile(FILE* output) {
     char* line = NULL;
-    while ((line = readLine(input))) {
-        line = processBlockquote(&depth, line, output);
+    while ((line = beginBlock())) {
         char* start = skip(line, " \t");
         if (start[0] == '\n') {
         } else if (startsWith(line, "* ")) {
-            processUnorderedList(line, input, output, 0);
+            processUnorderedList(line, output, 0);
         } else if (startsWith(line, "- ")) {
-            processUnorderedList(line, input, output, 0);
+            processUnorderedList(line, output, 0);
         } else if (startsWith(line, "---")) {
             fputs("<hr>\n", output);
         } else if (startsWith(line, "```")) {
-            processCodeFence(line, input, output);
-        } else if (depth == 0 && startsWith(line, "[^")) {
-            processFootnote(line, input, output);
+            processCodeFence(line, output);
         } else if (startsWith(line, "$$")) {
-            processMath(line, input, output);
+            processMath(line, output);
         } else {
-            if (processHeading(line, input, output))
+            if (processHeading(line, output))
                 continue;
-            if (processUnderline(line, input, output))
+            if (processUnderline(line, output))
                 continue;
-            processParagraph(line, input, output, depth);
+            if (processFootnote(line, output))
+                continue;
+            processParagraph(line, output);
         }
     }
 }
 
 int main(int argc, char* argv[]) {
-    processFile(stdin, stdout);
+    initContext(stdin, stdout);
+    processFile(stdout);
 }
