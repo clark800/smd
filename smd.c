@@ -245,7 +245,7 @@ static void processMath(char* line, FILE* output) {
 static int isParagraphInterrupt(char* line) {
     char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", ">",
         "# ", "## ", "### ", "#### ", "##### ", "###### "};
-    if (line == NULL)
+    if (isBlank(line))
         return 1;
     for (int i = 0; i < sizeof(interrupts)/sizeof(char*); i++)
         if (startsWith(line, interrupts[i]))
