@@ -53,6 +53,22 @@ void closeBlocks(char index) {
     length = index;
 }
 
+char* openBlocks(char* line) {
+    while(1) {
+        if (line[0] == '>') {
+            fputs("<blockquote>\n", output);
+            stack[length++] = '>';
+            line += line[1] == ' ' ? 2 : 1;
+        } else if (line[0] == '*' && line[1] == ' ') {
+            fputs("<ul>\n<li>\n", output);
+            stack[length++] = '*';
+            line += 2;
+        } else {
+            return line;
+        }
+    }
+}
+
 char* beginBlock() {
     unsigned char level = 0;
     char* line = getLine(input, 0);
@@ -63,8 +79,8 @@ char* beginBlock() {
     // first check how much of the stack is preserved and close blocks
     for (; level < length; level++) {
         if (stack[level] == '>') {
-            if (line[0] == '>' && line[1] == ' ') {
-                line += 2;
+            if (line[0] == '>') {
+                line += line[1] == ' ' ? 2 : 1;
             } else {
                 break;
             }
@@ -82,20 +98,7 @@ char* beginBlock() {
         }
     }
     closeBlocks(level);
-
-    // finally we add new stack elements still remaining in line
-    for (;; line += 2) {
-        if (line[0] == '>' && line[1] == ' ') {
-            fputs("<blockquote>\n", output);
-            stack[length++] = '>';
-        } else if (line[0] == '*' && line[1] == ' ') {
-            fputs("<ul>\n<li>\n", output);
-            stack[length++] = '*';
-        } else {
-            break;
-        }
-    }
-    return line;
+    return openBlocks(line);
 }
 
 char* peekLine() {
