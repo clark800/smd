@@ -36,8 +36,9 @@ static char* skipPrefixes(char* line) {
     for (int i = 0; i < length; i++) {
         if (stack[i] == '>' && line[0] == '>')
             line += line[1] == ' ' ? 2 : 1;
-        if (stack[i] == '*' && line[0] == ' ')
-            line += line[1] == ' ' ? 2 : 1;
+        if (stack[i] == '*' || stack[i] == '-' || stack[i] == '+')
+            if (line[0] == ' ' && line[1] == ' ')
+                line += 2;
     }
     return line;
 }
