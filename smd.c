@@ -10,8 +10,8 @@ static char* chomp(char* line) {
     return line;
 }
 
-static char* skip(char* line, char* characters) {
-    return line + strspn(line, characters);
+static char* skip(char* start, char* characters) {
+    return start == NULL ? NULL : start + strspn(start, characters);
 }
 
 static int startsWith(char* string, char* prefix) {
@@ -271,6 +271,8 @@ int processUnderline(char* line, FILE* output) {
 }
 
 static int processFootnote(char* line, FILE* output) {
+    if (!startsWith(line, "[^"))
+        return 0;
     char* name = line + 2;
     char* end = strchr(name, ']');
     if (end == NULL || end == name || end[1] != ':')
@@ -280,7 +282,7 @@ static int processFootnote(char* line, FILE* output) {
     fputs("\">\n", output);
     processInlines(skip(end + 2, " \t"), output);
     while (isspace(peek()))  // allows blank lines
-        processInlines(readLine(), output);
+        processInlines(skip(readLine(), " \t"), output);
     fputs("</p>\n", output);
     return 1;
 }
