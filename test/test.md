@@ -64,6 +64,8 @@ Paragraph [link[a]](page(pa(r)en).html)
 > Blockquote
 > Second Line
 > > ### Nested
+> > * Item 1
+> > * Item 2
 > > Text
 > Last Line
 After
