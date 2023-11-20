@@ -310,30 +310,29 @@ int processUnderline(char* line, FILE* output) {
     return 1;
 }
 
-static void processFile(FILE* output) {
-    char* line = NULL;
-    while ((line = beginBlock())) {
-        char* start = skip(line, " \t");
-        if (start[0] == '\n') {
-        } else if (startsWith(line, "---")) {
-            fputs("<hr>\n", output);
-        } else if (startsWith(line, "```")) {
-            processCodeFence(line, output);
-        } else if (startsWith(line, "$$")) {
-            processMath(line, output);
-        } else {
-            if (processHeading(line, output))
-                continue;
-            if (processUnderline(line, output))
-                continue;
-            if (processFootnote(line, output))
-                continue;
-            processParagraph(line, output);
-        }
+static void processBlock(char* line, FILE* output) {
+    if (isBlank(line))
+        return;
+    else if (startsWith(line, "---"))
+        fputs("<hr>\n", output);
+    else if (startsWith(line, "```"))
+        processCodeFence(line, output);
+    else if (startsWith(line, "$$"))
+        processMath(line, output);
+    else {
+        if (processHeading(line, output))
+            return;
+        if (processUnderline(line, output))
+            return;
+        if (processFootnote(line, output))
+            return;
+        processParagraph(line, output);
     }
 }
 
 int main(int argc, char* argv[]) {
+    char* line = NULL;
     initContext(stdin, stdout);
-    processFile(stdout);
+    while ((line = beginBlock()))
+        processBlock(line, stdout);
 }
