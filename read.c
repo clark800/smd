@@ -45,10 +45,10 @@ static char* skipPrefixes(char* line) {
 
 void closeBlocks(char index) {
     for (unsigned char i = 0; i < length - index; i++) {
-        if (stack[length - i - 1] == '>')
-            fputs("</blockquote>\n", output);
-        else if (stack[length - i - 1] == '*')
-            fputs("</li>\n</ul>\n", output);
+        switch (stack[length - i - 1]) {
+            case '>': fputs("</blockquote>\n", output); break;
+            case '*': fputs("</li>\n</ul>\n", output); break;
+        }
     }
     length = index;
 }
