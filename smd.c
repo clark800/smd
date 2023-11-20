@@ -30,50 +30,45 @@ static void fputr(char* start, char* end, FILE* output) {
         fputs(start, output);
 }
 
-static void printEscaped(char* start, char* end, FILE* output) {
-    char* brk = NULL;
-    for (char* p = start; !end || p < end; p = brk + 1) {
-        brk = strpbrk(p, "<>&");
-        if (brk && end && brk > end)
-            brk = end;
-        fputr(p, brk, output);
-        if (!brk)
-            break;
-        switch (brk[0]) {
-            case '<': fputs("&lt;", output); break;
-            case '>': fputs("&gt;", output); break;
-            case '&': fputs("&amp;", output); break;
-        }
-    }
-}
-
-static char* processAmpersand(char* start, FILE* output) {
-    char* semicolon = strchr(start, ';');
-    char* space = memchr(start, ' ', semicolon - start);
-    if (semicolon != NULL && space == NULL && semicolon > start + 1) { // Entity
-        fputr(start, semicolon + 1, output);
-        return semicolon + 1;
+static char* printAmpersand(char* start, FILE* output) {
+    char* brk = strpbrk(start + 1, "<>&; \t\n");
+    if (brk && brk[0] == ';' && brk - start > 1) {
+        fputr(start, brk + 1, output);
+        return brk + 1;  // HTML Entity
     }
     fputs("&amp;", output);
     return start + 1;
 }
 
-static char* processEscape(char* start, FILE* output) {
+static char* printEscape(char* start, FILE* output) {
     switch (start[0]) {
-        case '<': fputs("&lt;", output); break;
-        case '>': fputs("&gt;", output); break;
-        case '&': return processAmpersand(start, output);
+        case '<': fputs("&lt;", output); return start + 1;
+        case '>': fputs("&gt;", output); return start + 1;
+        case '&': return printAmpersand(start, output);
+        default: fputc(start[0], output); return start + 1;
     }
-    return start + 1;
+}
+
+static void printEscaped(char* start, char* end, FILE* output) {
+    char* brk = NULL;
+    for (char* p = start; !end || p < end;) {
+        brk = strpbrk(p, "<>&");
+        if (!brk || (end && brk > end))
+            brk = end;
+        fputr(p, brk, output);
+        if (!brk || brk == end)
+            break;
+        p = printEscape(brk, output);
+    }
 }
 
 static char* processLessThan(char* start, FILE* output) {
     char* content = start + 1;
     if (isspace(content[0]))
-        return processEscape(start, output);
+        return printEscape(start, output);
     char* end = strchr(content, '>');
     if (end == NULL || end == content)
-        return processEscape(start, output);
+        return printEscape(start, output);
     char* space = memchr(content, ' ', end - content);
     char* colon = memchr(content, ':', end - content);
     char* atsign = memchr(content, '@', end - content);
@@ -87,7 +82,7 @@ static char* processLessThan(char* start, FILE* output) {
         fputs("mailto:", output);
     fputr(content, end, output);
     fputs("\">", output);
-    fputr(content, end, output);
+    printEscaped(content, end, output);
     fputs("</a>", output);
     return end + 1;
 }
@@ -120,7 +115,7 @@ static char* processLink(char* start, FILE* output) {
     fputs("<a href=\"", output);
     fputr(href, hrefEnd, output);
     fputs("\">", output);
-    fputr(title, titleEnd, output);
+    printEscaped(title, titleEnd, output);
     fputs("</a>", output);
     return hrefEnd + 1;
 }
@@ -200,19 +195,15 @@ static char* processInlineMath(char* start, FILE* output) {
 static void processInlines(char* line, FILE* output) {
     char* p = line;
     while (*p != 0) {
-        char* brk = strpbrk(p, "`$*<>&![\\");
-        if (brk == NULL) {
-            fputs(p, output);
+        char* brk = strpbrk(p, "`$*<![\\");
+        printEscaped(p, brk, output);
+        if (brk == NULL)
             return;
-        }
-        fputr(p, brk, output);
         switch (*brk) {
             case '`': p = processCode(brk, output); break;
             case '$': p = processInlineMath(brk, output); break;
             case '*': p = processAsterisk(brk, output); break;
             case '<': p = processLessThan(brk, output); break;
-            case '>': p = processEscape(brk, output); break;
-            case '&': p = processEscape(brk, output); break;
             case '!': p = processImage(brk, output); break;
             case '[': p = processLink(brk, output); break;
             case '\\': p = processBackslash(brk, output); break;
@@ -233,7 +224,7 @@ static void processCodeFence(char* line, FILE* output) {
         fputs("<pre>\n<code>\n", output);
     }
     while ((line = readLine()) && strspn(line, "`") < length)
-        fputs(line, output);
+        printEscaped(line, NULL, output);
     fputs("</code>\n</pre>\n", output);
 }
 
@@ -246,7 +237,7 @@ static void processMath(char* line, FILE* output) {
             printEscaped(line, end, output);
             break;
         }
-        printEscaped(line, line + strlen(line), output);
+        printEscaped(line, NULL, output);
     } while ((line = readLine()));
     fputs("\\]\n", output);
 }
