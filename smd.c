@@ -195,7 +195,7 @@ static char* processInlineMath(char* start, FILE* output) {
     return processWrap(start, "$$", 1, openTags, closeTags, output);
 }
 
-static void processLine(char* line, FILE* output) {
+static void processInlines(char* line, FILE* output) {
     char* p = line;
     while (*p != 0) {
         char* brk = strpbrk(p, "`$*<>&![\\");
@@ -266,7 +266,7 @@ static int isParagraphInterrupt(char* line) {
 static void processParagraph(char* line, FILE* output) {
     fputs("<p>\n", output);
     for (; !isBlank(line); line = readLine()) {
-        processLine(line, output);
+        processInlines(line, output);
         if (isParagraphInterrupt(peekLine()))
             break;
     }
@@ -299,9 +299,9 @@ static int processFootnote(char* line, FILE* output) {
     fputs("<p id=\"", output);
     fputr(name, end, output);
     fputs("\">\n", output);
-    processLine(skip(end + 2, " \t"), output);
+    processInlines(skip(end + 2, " \t"), output);
     while (isspace(peek()))  // allows blank lines
-        processLine(readLine(), output);
+        processInlines(readLine(), output);
     fputs("</p>\n", output);
     return 1;
 }
