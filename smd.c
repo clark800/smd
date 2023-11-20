@@ -311,9 +311,7 @@ int processUnderline(char* line, FILE* output) {
 }
 
 static void processBlock(char* line, FILE* output) {
-    if (isBlank(line))
-        return;
-    else if (startsWith(line, "---"))
+    if (startsWith(line, "---"))
         fputs("<hr>\n", output);
     else if (startsWith(line, "```"))
         processCodeFence(line, output);
@@ -334,5 +332,6 @@ int main(int argc, char* argv[]) {
     char* line = NULL;
     initContext(stdin, stdout);
     while ((line = beginBlock()))
-        processBlock(line, stdout);
+        if (!isBlank(line))
+            processBlock(line, stdout);
 }
