@@ -19,13 +19,6 @@ static int startsWith(char* string, char* prefix) {
     return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
 }
 
-static int startsWithAny(char* string, char** prefixes) {
-    for (int i = 0; prefixes[i] != NULL; i++)
-        if (startsWith(string, prefixes[i]))
-            return 1;
-    return 0;
-}
-
 static int isBlank(char* line) {
     return line == NULL || line[strspn(line, " \t")] == '\n';
 }
@@ -251,13 +244,22 @@ static void processMath(char* line, FILE* output) {
     fputs("\\]\n", output);
 }
 
+static int isParagraphInterrupt(char* line) {
+    char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", ">",
+        "# ", "## ", "### ", "#### ", "##### ", "###### "};
+    if (line == NULL)
+        return 1;
+    for (int i = 0; i < sizeof(interrupts)/sizeof(char*); i++)
+        if (startsWith(line, interrupts[i]))
+            return 1;
+    return 0;
+}
+
 static void processParagraph(char* line, FILE* output) {
     fputs("<p>\n", output);
-    char* interrupts[] = {"```", "---", "* ", "- ", ">", "$$", 0};
     for (; !isBlank(line); line = readLine()) {
         processLine(line, output);
-        char* nextLine = peekLine();
-        if (!nextLine || startsWithAny(nextLine, interrupts))
+        if (isParagraphInterrupt(peekLine()))
             break;
     }
     fputs("</p>\n", output);
