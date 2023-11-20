@@ -292,7 +292,7 @@ static int processFootnote(char* line, FILE* output) {
     fputr(name, end, output);
     fputs("\">\n", output);
     processLine(skip(end + 2, " \t"), output);
-    while (isspace(peek()))
+    while (isblank(peek()))
         processLine(readLine(), output);
     fputs("</p>\n", output);
     return 1;
