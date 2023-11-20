@@ -175,20 +175,20 @@ static char* processWrap(char* start, char* wrap, int tightbits,
 }
 
 static char* processCode(char* start, FILE* output) {
-    char* openTags[] = {"<code>", "<code>", "<code>"};
-    char* closeTags[] = {"</code>", "</code>", "</code>"};
+    static char* openTags[] = {"<code>", "<code>", "<code>"};
+    static char* closeTags[] = {"</code>", "</code>", "</code>"};
     return processWrap(start, "```", 0, openTags, closeTags, output);
 }
 
 static char* processAsterisk(char* start, FILE* output) {
-    char* openTags[] = {"<em>", "<strong>", "<em><strong>"};
-    char* closeTags[] = {"</em>", "</strong>", "</strong></em>"};
+    static char* openTags[] = {"<em>", "<strong>", "<em><strong>"};
+    static char* closeTags[] = {"</em>", "</strong>", "</strong></em>"};
     return processWrap(start, "***", 7, openTags, closeTags, output);
 }
 
 static char* processInlineMath(char* start, FILE* output) {
-    char* openTags[] = {"\\(", "\\["};
-    char* closeTags[] = {"\\)", "\\]"};
+    static char* openTags[] = {"\\(", "\\["};
+    static char* closeTags[] = {"\\)", "\\]"};
     return processWrap(start, "$$", 1, openTags, closeTags, output);
 }
 
@@ -242,29 +242,6 @@ static void processMath(char* line, FILE* output) {
     fputs("\\]\n", output);
 }
 
-static int isParagraphInterrupt(char* line) {
-    char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", ">",
-        "# ", "## ", "### ", "#### ", "##### ", "###### "};
-    if (isBlank(line))
-        return 1;
-    for (int i = 0; i < sizeof(interrupts)/sizeof(char*); i++)
-        if (startsWith(line, interrupts[i]))
-            return 1;
-    if (isdigit(line[0]) && line[1] == '.' && line[2] == ' ')
-        return 1;
-    return 0;
-}
-
-static void processParagraph(char* line, FILE* output) {
-    fputs("<p>\n", output);
-    for (; !isBlank(line); line = readLine()) {
-        processInlines(line, output);
-        if (isParagraphInterrupt(peekLine()))
-            break;
-    }
-    fputs("</p>\n", output);
-}
-
 static void printHeading(char* title, int level, FILE* output) {
     char openTag[] = "<h0>";
     char closeTag[] = "</h0>\n";
@@ -310,6 +287,27 @@ int processUnderline(char* line, FILE* output) {
     printHeading(line, level, output);
     readLine();
     return 1;
+}
+
+static int isParagraphInterrupt(char* line) {
+    static char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", ">",
+        "# ", "## ", "### ", "#### ", "##### ", "###### "};
+    if (isBlank(line))
+        return 1;
+    for (int i = 0; i < sizeof(interrupts)/sizeof(char*); i++)
+        if (startsWith(line, interrupts[i]))
+            return 1;
+    if (isdigit(line[0]) && line[1] == '.' && line[2] == ' ')
+        return 1;
+    return 0;
+}
+
+static void processParagraph(char* line, FILE* output) {
+    fputs("<p>\n", output);
+    processInlines(line, output);
+    while (!isParagraphInterrupt(peekLine()))
+        processInlines(readLine(), output);
+    fputs("</p>\n", output);
 }
 
 static void processBlock(char* line, FILE* output) {
