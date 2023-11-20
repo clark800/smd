@@ -262,14 +262,11 @@ static int processHeading(char* line, FILE* output) {
 
 int processUnderline(char* line, FILE* output) {
     char* next = peekLine();
-    char level = 0;
     if (next && next[0] == '=' && skip(skip(next, "="), " \t")[0] == '\n')
-        level = 1;
-    if (next && next[0] == '-' && skip(skip(next, "-"), " \t")[0] == '\n')
-        level = 2;
-    if (level == 0)
-        return 0;
-    printHeading(line, level, output);
+        printHeading(line, 1, output);
+    else if (next && next[0] == '-' && skip(skip(next, "-"), " \t")[0] == '\n')
+        printHeading(line, 2, output);
+    else return 0;
     readLine();
     return 1;
 }
