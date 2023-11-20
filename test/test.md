@@ -66,6 +66,7 @@ Paragraph [link[a]](page(pa(r)en).html)
 > > ### Nested
 > > * Item 1
 > > * Item 2
+> > - Item 3
 > > Text
 > Last Line
 After
