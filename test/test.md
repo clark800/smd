@@ -7,6 +7,8 @@ a < b > c
 $$ math $$
 $$><<><&$$
 
+<a@b.com>
+
 ***This*** is ``*not* **code\***
 
 <http://domain.com> [see below](#foot)

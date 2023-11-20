@@ -56,11 +56,15 @@ static char* processLessThan(char* start, FILE* output) {
         return processEscape(start, output);
     char* space = memchr(content, ' ', end - content);
     char* colon = memchr(content, ':', end - content);
-    if (space != NULL || colon == NULL) {  // assume this is an HTML tag
+    char* atsign = memchr(content, '@', end - content);
+    if (space != NULL || (colon == NULL && atsign == NULL)) {
+        // assume this is an HTML tag
         fputr(start, end + 1, output);
         return end + 1;
     }
     fputs("<a href=\"", output);
+    if (colon == NULL && atsign != NULL)
+        fputs("mailto:", output);
     fputr(content, end, output);
     fputs("\">", output);
     fputr(content, end, output);
