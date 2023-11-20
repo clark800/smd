@@ -23,8 +23,28 @@ static int isBlank(char* line) {
     return line == NULL || line[strspn(line, " \t")] == '\n';
 }
 
-static size_t fputr(char* start, char* end, FILE* output) {
-    return fwrite(start, sizeof(char), end - start, output);
+static void fputr(char* start, char* end, FILE* output) {
+    if (end)
+        fwrite(start, sizeof(char), end - start, output);
+    else
+        fputs(start, output);
+}
+
+static void printEscaped(char* start, char* end, FILE* output) {
+    char* brk = NULL;
+    for (char* p = start; !end || p < end; p = brk + 1) {
+        brk = strpbrk(p, "<>&");
+        if (brk && end && brk > end)
+            brk = end;
+        fputr(p, brk, output);
+        if (!brk)
+            break;
+        switch (brk[0]) {
+            case '<': fputs("&lt;", output); break;
+            case '>': fputs("&gt;", output); break;
+            case '&': fputs("&amp;", output); break;
+        }
+    }
 }
 
 static char* processAmpersand(char* start, FILE* output) {
@@ -136,24 +156,6 @@ static char* processBackslash(char* start, FILE* output) {
     return p;
 }
 
-static char* processVerbatim(char* start, char* end, FILE* output) {
-    char* brk = NULL;
-    for (char* p = start; p < end; p = brk + 1) {
-        brk = strpbrk(p, "<>&");
-        if (brk == NULL || brk > end) {
-            fputr(p, end, output);
-            break;
-        }
-        fputr(p, brk, output);
-        switch (brk[0]) {
-            case '<': fputs("&lt;", output); break;
-            case '>': fputs("&gt;", output); break;
-            case '&': fputs("&amp;", output); break;
-        }
-    }
-    return end;
-}
-
 static char* processWrap(char* start, char* wrap, int tightbits,
         char* openTags[], char* closeTags[], FILE* output) {
     size_t maxlen = strlen(wrap);
@@ -172,7 +174,7 @@ static char* processWrap(char* start, char* wrap, int tightbits,
     if (end == NULL || (tight && (isspace(content[0]) || isspace(end[-1]))))
         return start;
     fputs(openTags[length-1], output);
-    processVerbatim(content, end, output);
+    printEscaped(content, end, output);
     fputs(closeTags[length-1], output);
     return end + length;
 }
@@ -241,10 +243,10 @@ static void processMath(char* line, FILE* output) {
     do {
         char* end = strstr(line, "$$");
         if (end && skip(end + 2, " \t")[0] == '\n') {
-            processVerbatim(line, end, output);
+            printEscaped(line, end, output);
             break;
         }
-        processVerbatim(line, line + strlen(line), output);
+        printEscaped(line, line + strlen(line), output);
     } while ((line = readLine()));
     fputs("\\]\n", output);
 }
