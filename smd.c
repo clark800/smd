@@ -126,6 +126,10 @@ static char* processImage(char* start, FILE* output) {
 
 static char* processBackslash(char* start, FILE* output) {
     char* p = start;
+    if (start[1] == '\n') {
+        fputs("<br>\n", output);
+        return start + 2;
+    }
     fputc(*p++, output);
     if (*p != 0)
         fputc(*p++, output);
