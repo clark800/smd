@@ -32,6 +32,11 @@ Here is a list:[^foot]
 - A
 - B
 
+Ordered
+. One
+. Two
+. Three
+
 Inline <a href="page.html">link</a>
 $$
 math $$

@@ -250,7 +250,7 @@ static void processMath(char* line, FILE* output) {
 }
 
 static int isParagraphInterrupt(char* line) {
-    char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", ">",
+    char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", ". ", ">",
         "# ", "## ", "### ", "#### ", "##### ", "###### "};
     if (line == NULL)
         return 1;

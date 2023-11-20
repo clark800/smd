@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static char stack[256] = {0};
 static unsigned char length = 0;
@@ -31,14 +32,12 @@ static char* getLine(FILE* input, int peek) {
     return result;
 }
 
-// skip prefixes that are part of the current block
 static char* skipPrefixes(char* line) {
     for (int i = 0; i < length; i++) {
         if (stack[i] == '>' && line[0] == '>')
             line += line[1] == ' ' ? 2 : 1;
-        if (stack[i] == '*' || stack[i] == '-' || stack[i] == '+')
-            if (line[0] == ' ' && line[1] == ' ')
-                line += 2;
+        if (strchr("*-+.", stack[i]) && line[0] == ' ' && line[1] == ' ')
+            line += 2;
     }
     return line;
 }
@@ -51,12 +50,13 @@ char* openBlocks(char* line) {
                 fputs("<blockquote>\n", output);
                 line += line[1] == ' ' ? 2 : 1;
                 break;
+            case '.':
             case '-':
             case '+':
             case '*':
                 if (line[1] != ' ')
                     return line;
-                fputs("<ul>\n<li>\n", output);
+                fputs(c == '.' ? "<ol>\n<li>\n" : "<ul>\n<li>\n", output);
                 line += 2;
                 break;
            default: return line;
@@ -72,6 +72,7 @@ void closeLevel(char index) {
             case '-':
             case '+':
             case '*': fputs("</li>\n</ul>\n", output); break;
+            case '.': fputs("</li>\n</ol>\n", output); break;
         }
     }
     length = index;
@@ -93,6 +94,7 @@ char* closeBlocks(char* line) {
                     return line;
                 }
                 break;
+            case '.':
             case '-':
             case '+':
             case '*':
