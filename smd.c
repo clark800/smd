@@ -243,11 +243,11 @@ static void processMath(char* line, FILE* output) {
     fputs("\\[", output);
     do {
         char* end = strstr(line, "$$");
-        if (end == NULL)
-            end = line + strlen(line);
-        processVerbatim(line, end, output);
-        if (*end == '$')
+        if (end && skip(end + 2, " \t")[0] == '\n') {
+            processVerbatim(line, end, output);
             break;
+        }
+        processVerbatim(line, line + strlen(line), output);
     } while ((line = readLine()));
     fputs("\\]\n", output);
 }
