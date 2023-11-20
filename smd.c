@@ -279,7 +279,7 @@ static void printHeading(char* title, int level, FILE* output) {
     openTag[2] = '0' + level;
     closeTag[3] = '0' + level;
     fputs(openTag, output);
-    fputs(chomp(title), output);
+    processInlines(chomp(title), output);
     fputs(closeTag, output);
 }
 
