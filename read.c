@@ -14,7 +14,7 @@ void initContext(FILE* in, FILE* out) {
 
 static char* getLine(FILE* input, int peek) {
     static char peeked = 0, flipped = 0;
-    static char bufferA[4096], bufferB[4096];
+    static char bufferA[4096], bufferB[sizeof(bufferA)];
     char* line = flipped ? bufferB : bufferA;
     char* next = flipped ? bufferA : bufferB;
     if (peeked) {
@@ -24,11 +24,11 @@ static char* getLine(FILE* input, int peek) {
     }
     char* buffer = peek ? next : line;
     buffer[0] = '\n';
-    buffer[4096 - 1] = '\n';
+    buffer[sizeof(bufferA) - 2] = '\n';
     // load buffer with offset so we can safely look back a character
-    char* result = fgets(buffer + 1, 4096 - 1, input);
-    if (buffer[4096 - 1] != '\n') {
-        fputs("\nError: line too long", stderr);
+    char* result = fgets(buffer + 1, sizeof(bufferA) - 1, input);
+    if (buffer[sizeof(bufferA) - 2] != '\n') {
+        fputs("\nError: line too long\n", stderr);
         exit(1);
     }
     peeked = result ? peek : 0;
