@@ -48,6 +48,14 @@ static int isBlank(char* line) {
     return line == NULL || isLineEnd(skip(line, " \t"));
 }
 
+static int count(char* start, char* end, char c) {
+    int count = 0;
+    for (char* p = start; p < end; p++)
+        if (p[0] == c)
+            count += 1;
+    return count;
+}
+
 static void fputr(char* start, char* end, FILE* output) {
     if (end)
         fwrite(start, sizeof(char), end - start, output);
@@ -190,14 +198,11 @@ static char* getNextRun(char* start, char* delimiter, size_t length) {
 
 static char* findEnd(char* start, char* delimiter, int intraword, int tight) {
     char* run = start;
-    size_t runlength = strspn(run, delimiter);
     size_t length = strlen(delimiter);
     while ((run = getNextRun(skip(run, delimiter), delimiter, length))) {
-        size_t endrunlength = strspn(run, delimiter);
-        if ((runlength + endrunlength) % 3 == 0 && runlength % 3 != 0)
-            continue;
         char* end = skip(run, delimiter) - length;
-        if (!(tight && isspace(run[-1]) || !intraword && isalnum(end[length])))
+        if (count(start + length, end, delimiter[0]) % 2 == 0 &&
+            !(tight && isspace(run[-1]) || !intraword && isalnum(end[length])))
             return end;
     }
     return NULL;
