@@ -6,8 +6,14 @@
 static char* chomp(char* line) {
     size_t length = strlen(line);
     if (line[length - 1] == '\n')
-        line[length - 1] = '\0';
+        line[--length] = '\0';
+    if (line[length - 1] == '\r')
+        line[--length] = '\0';
     return line;
+}
+
+static int isLineEnd(char* s) {
+    return s[0] == '\n' || s[0] == '\r';
 }
 
 static char* skip(char* start, char* characters) {
@@ -23,7 +29,7 @@ static char* unindent(char* p) {
 }
 
 static int isBlank(char* line) {
-    return line == NULL || line[strspn(line, " \t")] == '\n';
+    return line == NULL || isLineEnd(skip(line, " \t"));
 }
 
 static void fputr(char* start, char* end, FILE* output) {
@@ -53,7 +59,7 @@ static char* printAmpersand(char* start, FILE* output) {
 }
 
 static char* printBackslash(char* start, FILE* output) {
-    if (start[1] == '\n') {
+    if (isLineEnd(start + 1)) {
         fputs("<br>\n", output);
         return start + 2;
     } else if (ispunct(start[1])) {
@@ -250,7 +256,7 @@ static void processMathBlock(char* line, FILE* output) {
     fputs("\\[", output);
     do {
         char* end = strstr(line, "$$");
-        if (end && skip(end + 2, " \t")[0] == '\n') {
+        if (end && isLineEnd(skip(end + 2, " \t"))) {
             printEscaped(line, end, output);
             break;
         }
@@ -279,9 +285,9 @@ static int processHeading(char* line, FILE* output) {
 
 int processUnderline(char* line, FILE* output) {
     char* next = peekLine();
-    if (next && next[0] == '=' && skip(skip(next, "="), " \t")[0] == '\n')
+    if (next && next[0] == '=' && isLineEnd(skip(skip(next, "="), " \t")))
         printHeading(line, 1, output);
-    else if (next && next[0] == '-' && skip(skip(next, "-"), " \t")[0] == '\n')
+    else if (next && next[0] == '-' && isLineEnd(skip(skip(next, "-"), " \t")))
         printHeading(line, 2, output);
     else return 0;
     readLine();
