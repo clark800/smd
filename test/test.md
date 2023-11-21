@@ -89,4 +89,7 @@ Paragraph
 fenced
 ```
 
+    indented code
+    block
+
 [^foot]: My footnote

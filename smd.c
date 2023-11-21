@@ -18,6 +18,10 @@ static int startsWith(char* string, char* prefix) {
     return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
 }
 
+static char* unindent(char* p) {
+    return startsWith(p, "    ") ? p + 4 : (p && p[0] == '\t' ? p + 1 : NULL);
+}
+
 static int isBlank(char* line) {
     return line == NULL || line[strspn(line, " \t")] == '\n';
 }
@@ -233,6 +237,14 @@ static void processCodeFence(char* line, FILE* output) {
     fputs("</code>\n</pre>\n", output);
 }
 
+static void processCodeBlock(char* line, FILE* output) {
+    fputs("<pre>\n<code>\n", output);
+    printEscaped(unindent(line), NULL, output);
+    while ((line = unindent(readLine())))
+        printEscaped(line, NULL, output);
+    fputs("</code>\n</pre>\n", output);
+}
+
 static void processMathBlock(char* line, FILE* output) {
     line += 2;
     fputs("\\[", output);
@@ -317,6 +329,8 @@ static void processParagraph(char* line, FILE* output) {
 static void processBlock(char* line, FILE* output) {
     if (startsWith(line, "---"))
         fputs("<hr>\n", output);
+    else if (unindent(line))
+        processCodeBlock(line, output);
     else if (startsWith(line, "```"))
         processCodeFence(line, output);
     else if (startsWith(line, "$$"))
