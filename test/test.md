@@ -15,6 +15,8 @@ Math: 1$b$ $a$1 ($a$)
 
 *a **b c** d*
 
+**a * b**
+
 <a@b.com>\
 
 ***This*** is ``*not* **code\***
