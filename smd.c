@@ -128,7 +128,7 @@ static char* findClose(char* p, char* brackets) {
 static char* processLink(char* start, FILE* output) {
     char* title = start + 1;
     char* titleEnd = findClose(start, "[]");
-    if (titleEnd == NULL || titleEnd == title)
+    if (titleEnd == NULL)
         return start;
     if (title[0] == '^') {
         fputs("<sup><a href=\"#", output);
@@ -141,7 +141,7 @@ static char* processLink(char* start, FILE* output) {
         return start;
     char* href = paren + 1;
     char* hrefEnd = findClose(paren, "()");
-    if (hrefEnd == NULL || hrefEnd == href)
+    if (hrefEnd == NULL)
         return start;
     fputs("<a href=\"", output);
     fputr(href, hrefEnd, output);
@@ -155,12 +155,13 @@ static char* processImage(char* start, FILE* output) {
     if (start[1] != '[')
         return start;
     char* title = start + 2;
-    char* titleEnd = strchr(title, ']');
-    if (titleEnd == NULL || titleEnd == title || titleEnd[1] != '(')
+    char* titleEnd = findClose(start + 1, "[]");
+    char* paren = titleEnd + 1;
+    if (titleEnd == NULL || paren[0] != '(')
         return start;
-    char* href = titleEnd + 2;
-    char* hrefEnd = strchr(href, ')');
-    if (hrefEnd == NULL || hrefEnd == href)
+    char* href = paren + 1;
+    char* hrefEnd = findClose(paren, "()");
+    if (hrefEnd == NULL)
         return start;
     fputs("<img src=\"", output);
     fputr(href, hrefEnd, output);
