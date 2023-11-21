@@ -29,35 +29,51 @@ static void fputr(char* start, char* end, FILE* output) {
         fputs(start, output);
 }
 
+static char* printEscape(char* start, FILE* output) {
+    switch (start[0]) {
+        case '<': fputs("&lt;", output); break;
+        case '>': fputs("&gt;", output); break;
+        case '&': fputs("&amp;", output); break;
+        default: fputc(start[0], output); break;
+    }
+    return start + 1;
+}
+
 static char* printAmpersand(char* start, FILE* output) {
     char* brk = strpbrk(start + 1, "<>&; \t\n");
     if (brk && brk[0] == ';' && brk - start > 1) {
         fputr(start, brk + 1, output);
         return brk + 1;  // HTML Entity
     }
-    fputs("&amp;", output);
-    return start + 1;
+    return printEscape(start, output);
 }
 
-static char* printEscape(char* start, FILE* output) {
-    switch (start[0]) {
-        case '<': fputs("&lt;", output); return start + 1;
-        case '>': fputs("&gt;", output); return start + 1;
-        case '&': return printAmpersand(start, output);
-        default: fputc(start[0], output); return start + 1;
+static char* printBackslash(char* start, FILE* output) {
+    if (start[1] == '\n') {
+        fputs("<br>\n", output);
+        return start + 2;
+    } else if (ispunct(start[1])) {
+        return printEscape(start + 1, output);
+    } else {
+        fputc(start[0], output);
+        return start + 1;
     }
 }
 
 static void printEscaped(char* start, char* end, FILE* output) {
     char* brk = NULL;
     for (char* p = start; !end || p < end;) {
-        brk = strpbrk(p, "<>&");
+        brk = strpbrk(p, "<>&\\");
         if (!brk || (end && brk > end))
             brk = end;
         fputr(p, brk, output);
         if (!brk || brk == end)
             break;
-        p = printEscape(brk, output);
+        switch (brk[0]) {
+            case '&': p = printAmpersand(brk, output); break;
+            case '\\': p = printBackslash(brk, output); break;
+            default: p = printEscape(brk, output); break;
+        }
     }
 }
 
@@ -138,18 +154,6 @@ static char* processImage(char* start, FILE* output) {
     return hrefEnd + 1;
 }
 
-static char* processBackslash(char* start, FILE* output) {
-    if (start[1] == '\n') {
-        fputs("<br>\n", output);
-        return start + 2;
-    } else if (ispunct(start[1])) {
-        return printEscape(start + 1, output);
-    } else {
-        fputc(start[0], output);
-        return start + 1;
-    }
-}
-
 static char* processWrap(char* start, char* wrap, int tightbits,
         char* openTags[], char* closeTags[], FILE* output) {
     size_t maxlen = strlen(wrap);
@@ -164,6 +168,8 @@ static char* processWrap(char* start, char* wrap, int tightbits,
     delimiter[length] = '\0';
     char* content = start + length;
     char* end = strstr(content, delimiter);
+    while (end && end[-1] == '\\')
+        end = strstr(end + 1, delimiter);
     int tight = tightbits & (1 << (length - 1));
     if (end == NULL || (tight && (isspace(content[0]) || isspace(end[-1]))))
         return start;
@@ -205,7 +211,7 @@ static void processInlines(char* line, FILE* output) {
             case '<': p = processTag(brk, output); break;
             case '!': p = processImage(brk, output); break;
             case '[': p = processLink(brk, output); break;
-            case '\\': p = processBackslash(brk, output); break;
+            case '\\': p = printBackslash(brk, output); break;
         }
         if (p == brk)
             fputc(*p++, output);
