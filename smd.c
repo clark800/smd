@@ -26,6 +26,12 @@ static char* trim(char* s, char* characters) {
     return s;
 }
 
+static char* rskip(char* end, char* characters) {
+    int i = 0;
+    for (; strchr(characters, end[-1 - i]); i++);
+    return end - i;
+}
+
 static int startsWith(char* string, char* prefix) {
     return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
 }
@@ -215,12 +221,14 @@ static char* processInlineMath(char* start, FILE* output) {
     return processWrap(start, "$", 0, 1, openTags, closeTags, output);
 }
 
-static void processInlines(char* line, FILE* output) {
-    char* p = line;
+static void processInlines(char* start, char* end, FILE* output) {
+    char* p = start;
     while (*p != 0) {
         char* brk = strpbrk(p, "`$*<![\\");
+        if (!brk || (end && brk > end))
+            brk = end;
         printEscaped(p, brk, output);
-        if (brk == NULL)
+        if (!brk || brk == end)
             return;
         switch (*brk) {
             case '`': p = processInlineCode(brk, output); break;
@@ -273,13 +281,38 @@ static void processMathBlock(char* line, FILE* output) {
     fputs("\\]\n", output);
 }
 
+static void processTableRow(char* line, FILE* output) {
+    char* p = line + 1;
+    if (isLineEnd(skip(p, " \t|-:")))
+        return;  // ignore divider row
+    fputs("<tr>", output);
+    for (char* end = p; (end = strchr(end + 1, '|'));) {
+        if (end[-1] == '\\')
+            continue;
+        fputs("<td>", output);
+        processInlines(skip(p, " \t"), rskip(end, " \t"), output);
+        fputs("</td>", output);
+        p = end + 1;
+    }
+    fputs("</tr>\n", output);
+}
+
+static void processTable(char* line, FILE* output) {
+    fputs("<table>\n<thead>\n", output);
+    processTableRow(line, output);
+    fputs("</thead>\n<tbody>\n", output);
+    while (startsWith(peekLine(), "|"))
+        processTableRow(readLine(), output);
+    fputs("</tbody>\n</table>\n", output);
+}
+
 static void printHeading(char* title, int level, FILE* output) {
     char openTag[] = "<h0>";
     char closeTag[] = "</h0>\n";
     openTag[2] = '0' + level;
     closeTag[3] = '0' + level;
     fputs(openTag, output);
-    processInlines(trim(chomp(skip(title, " \t")), " \t"), output);
+    processInlines(trim(chomp(skip(title, " \t")), " \t"), NULL, output);
     fputs(closeTag, output);
 }
 
@@ -312,16 +345,16 @@ static int processFootnote(char* line, FILE* output) {
     fputs("<p id=\"", output);
     fputr(name, end, output);
     fputs("\">\n", output);
-    processInlines(skip(end + 2, " \t"), output);
+    processInlines(skip(end + 2, " \t"), NULL, output);
     while (isspace(peek()))  // allows blank lines
-        processInlines(skip(readLine(), " \t"), output);
+        processInlines(skip(readLine(), " \t"), NULL, output);
     fputs("</p>\n", output);
     return 1;
 }
 
 static int isParagraphInterrupt(char* line) {
     static char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", ">",
-        "# ", "## ", "### ", "#### ", "##### ", "###### "};
+        "| ", "# ", "## ", "### ", "#### ", "##### ", "###### "};
     if (isBlank(line))
         return 1;
     for (int i = 0; i < sizeof(interrupts)/sizeof(char*); i++)
@@ -334,9 +367,9 @@ static int isParagraphInterrupt(char* line) {
 
 static void processParagraph(char* line, FILE* output) {
     fputs("<p>\n", output);
-    processInlines(line, output);
+    processInlines(line, NULL, output);
     while (!isParagraphInterrupt(peekLine()))
-        processInlines(readLine(), output);
+        processInlines(readLine(), NULL, output);
     fputs("</p>\n", output);
 }
 
@@ -349,6 +382,8 @@ static void processBlock(char* line, FILE* output) {
         processCodeFence(line, output);
     else if (startsWith(line, "$$"))
         processMathBlock(line, output);
+    else if (startsWith(line, "| "))
+        processTable(line, output);
     else {
         if (processHeading(line, output))
             return;

@@ -94,4 +94,9 @@ fenced
     indented code
     block
 
+| a | *b* | c |
+|---|-----|---|
+| d | \|e | f |
+
+
 [^foot]: My footnote
