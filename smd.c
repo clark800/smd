@@ -53,7 +53,7 @@ static int isBlank(char* line) {
 static int count(char* start, char* end, char c) {
     int count = 0;
     for (char* p = start; p < end; p++)
-        if (p[0] == c)
+        if (p[0] == c && p[-1] != '\\')
             count += 1;
     return count;
 }
