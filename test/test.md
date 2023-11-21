@@ -9,6 +9,10 @@ $$><<><&$$
 
 Math: 1$b$ $a$1 ($a$)
 
+***a b** c*
+***a b* c**
+*a **b c** d*
+
 <a@b.com>\
 
 ***This*** is ``*not* **code\***

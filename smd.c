@@ -3,6 +3,10 @@
 #include <ctype.h>
 #include "read.h"
 
+static size_t min(size_t a, size_t b) {
+    return a > b ? b : a;
+}
+
 static char* chomp(char* line) {
     size_t length = strlen(line);
     if (line[length - 1] == '\n')
@@ -177,28 +181,48 @@ static char* processImage(char* start, FILE* output) {
     return hrefEnd + 1;
 }
 
-static char* processWrap(char* start, char* wrap, int intraword, int tight,
-        char* openTags[], char* closeTags[], FILE* output) {
-    size_t maxlen = strlen(wrap);
-    char search[] = {wrap[0], '\0'};
-    size_t length = strspn(start, search);
-    char delimiter[16];
-    if (length > maxlen || length >= sizeof(delimiter)) {
-        fputr(start, start + length, output);
-        return start + length;
+static char* getNextRun(char* start, char* delimiter, size_t length) {
+    char* endrun = strstr(start, delimiter);
+    while (endrun && endrun[-1] == '\\')
+        endrun = strstr(endrun + 1, delimiter);
+    return endrun;
+}
+
+static char* findEnd(char* start, char* delimiter, int intraword, int tight) {
+    char* run = start;
+    size_t runlength = strspn(run, delimiter);
+    size_t length = strlen(delimiter);
+    while ((run = getNextRun(skip(run, delimiter), delimiter, length))) {
+        size_t endrunlength = strspn(run, delimiter);
+        if ((runlength + endrunlength) % 3 == 0 && runlength % 3 != 0)
+            continue;
+        char* end = skip(run, delimiter) - length;
+        if (!(tight && isspace(run[-1]) || !intraword && isalnum(end[length])))
+            return end;
     }
-    strncpy(delimiter, wrap, length);
-    delimiter[length] = '\0';
-    char* content = start + length;
-    char* end = strstr(content, delimiter);
-    while (end && end[-1] == '\\')
-        end = strstr(end + 1, delimiter);
-    if (end == NULL || (tight && (isspace(content[0]) || isspace(end[-1]))))
+    return NULL;
+}
+
+static char* processSpan(char* start, char* wrap, int intraword, int tight,
+        char* openTags[], char* closeTags[], FILE* output) {
+    if (!intraword && isalnum(start[-1]))
         return start;
-    if (!intraword && (isalnum(start[-1]) || isalnum(end[length])))
+    size_t runlength = strspn(start, wrap);
+    if (tight && isspace(start[runlength]))
+        return start;
+    size_t length = min(runlength, strlen(wrap));
+    char delimiter[8];
+    strcpy(delimiter, wrap);
+    char* end = NULL;
+    for (; length > 0 && end == NULL; length--) {
+        delimiter[length] = '\0';
+        if ((end = findEnd(start, delimiter, intraword, tight)))
+            break;
+    }
+    if (!end)
         return start;
     fputs(openTags[length-1], output);
-    printEscaped(content, end, output);
+    printEscaped(start + length, end, output);
     fputs(closeTags[length-1], output);
     return end + length;
 }
@@ -206,19 +230,19 @@ static char* processWrap(char* start, char* wrap, int intraword, int tight,
 static char* processInlineCode(char* start, FILE* output) {
     static char* openTags[] = {"<code>", "<code>", "<code>"};
     static char* closeTags[] = {"</code>", "</code>", "</code>"};
-    return processWrap(start, "```", 1, 0, openTags, closeTags, output);
+    return processSpan(start, "```", 1, 0, openTags, closeTags, output);
 }
 
 static char* processEmphasis(char* start, FILE* output) {
     static char* openTags[] = {"<em>", "<strong>", "<em><strong>"};
     static char* closeTags[] = {"</em>", "</strong>", "</strong></em>"};
-    return processWrap(start, "***", 1, 1, openTags, closeTags, output);
+    return processSpan(start, "***", 1, 1, openTags, closeTags, output);
 }
 
 static char* processInlineMath(char* start, FILE* output) {
     static char* openTags[] = {"\\("};
     static char* closeTags[] = {"\\)"};
-    return processWrap(start, "$", 0, 1, openTags, closeTags, output);
+    return processSpan(start, "$", 0, 1, openTags, closeTags, output);
 }
 
 static void processInlines(char* start, char* end, FILE* output) {
