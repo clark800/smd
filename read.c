@@ -20,11 +20,13 @@ static char* getLine(FILE* input, int peek) {
     if (peeked) {
         peeked = peek;
         flipped ^= !peek;
-        return next;
+        return next + 1;
     }
     char* buffer = peek ? next : line;
+    buffer[0] = '\n';
     buffer[4096 - 1] = '\n';
-    char* result = fgets(buffer, 4096, input);
+    // load buffer with offset so we can safely look back a character
+    char* result = fgets(buffer + 1, 4096 - 1, input);
     if (buffer[4096 - 1] != '\n') {
         fputs("\nError: line too long", stderr);
         exit(1);

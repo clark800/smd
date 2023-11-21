@@ -7,6 +7,8 @@ a < b > c
 $$ math $$
 $$><<><&$$
 
+Math: 1$b$ $a$1 ($a$)
+
 <a@b.com>\
 
 ***This*** is ``*not* **code\***
