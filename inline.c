@@ -3,10 +3,6 @@
 #include <ctype.h>
 #include "inline.h"
 
-int isLineEnd(char* s) {
-    return s[0] == '\n' || s[0] == '\r';
-}
-
 char* skip(char* start, char* characters) {
     return start == NULL ? NULL : start + strspn(start, characters);
 }
@@ -50,7 +46,7 @@ static char* printAmpersand(char* start, FILE* output) {
 }
 
 static char* printBackslash(char* start, FILE* output) {
-    if (isLineEnd(start + 1)) {
+    if (start[1] == '\n' || start[1] == '\r') {
         fputs("<br>\n", output);
         return start + 2;
     } else if (ispunct(start[1])) {
