@@ -3,6 +3,8 @@
 #include <ctype.h>
 #include "read.h"
 
+static void processInlines(char* start, char* end, FILE* output);
+
 static size_t min(size_t a, size_t b) {
     return a > b ? b : a;
 }
@@ -209,7 +211,7 @@ static char* findEnd(char* start, char* delimiter, int intraword, int tight) {
 }
 
 static char* processSpan(char* start, char* wrap, int intraword, int tight,
-        char* openTags[], char* closeTags[], FILE* output) {
+        int process, char* openTags[], char* closeTags[], FILE* output) {
     if (!intraword && isalnum(start[-1]))
         return start;
     size_t runlength = strspn(start, wrap);
@@ -227,7 +229,10 @@ static char* processSpan(char* start, char* wrap, int intraword, int tight,
     if (!end)
         return start;
     fputs(openTags[length-1], output);
-    printEscaped(start + length, end, output);
+    if (process)
+        processInlines(start + length, end, output);
+    else
+        printEscaped(start + length, end, output);
     fputs(closeTags[length-1], output);
     return end + length;
 }
@@ -235,19 +240,19 @@ static char* processSpan(char* start, char* wrap, int intraword, int tight,
 static char* processInlineCode(char* start, FILE* output) {
     static char* openTags[] = {"<code>", "<code>", "<code>"};
     static char* closeTags[] = {"</code>", "</code>", "</code>"};
-    return processSpan(start, "```", 1, 0, openTags, closeTags, output);
+    return processSpan(start, "```", 1, 0, 0, openTags, closeTags, output);
 }
 
 static char* processEmphasis(char* start, FILE* output) {
     static char* openTags[] = {"<em>", "<strong>", "<em><strong>"};
     static char* closeTags[] = {"</em>", "</strong>", "</strong></em>"};
-    return processSpan(start, "***", 1, 1, openTags, closeTags, output);
+    return processSpan(start, "***", 1, 1, 1, openTags, closeTags, output);
 }
 
 static char* processInlineMath(char* start, FILE* output) {
     static char* openTags[] = {"\\("};
     static char* closeTags[] = {"\\)"};
-    return processSpan(start, "$", 0, 1, openTags, closeTags, output);
+    return processSpan(start, "$", 0, 1, 0, openTags, closeTags, output);
 }
 
 static void processInlines(char* start, char* end, FILE* output) {
