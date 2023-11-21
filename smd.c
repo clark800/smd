@@ -20,6 +20,12 @@ static char* skip(char* start, char* characters) {
     return start == NULL ? NULL : start + strspn(start, characters);
 }
 
+static char* trim(char* s, char* characters) {
+    for (size_t i = strlen(s); i > 0 && strchr(characters, s[i - 1]); i--)
+        s[i - 1] = '\0';
+    return s;
+}
+
 static int startsWith(char* string, char* prefix) {
     return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
 }
@@ -271,7 +277,7 @@ static void printHeading(char* title, int level, FILE* output) {
     openTag[2] = '0' + level;
     closeTag[3] = '0' + level;
     fputs(openTag, output);
-    processInlines(chomp(title), output);
+    processInlines(trim(chomp(skip(title, " \t")), " \t"), output);
     fputs(closeTag, output);
 }
 
@@ -279,7 +285,7 @@ static int processHeading(char* line, FILE* output) {
     size_t level = strspn(line, "#");
     if (level == 0 || level > 6 || !isblank(*(line + level)))
         return 0;
-    printHeading(skip(line + level, " \t"), level, output);
+    printHeading(trim(chomp(skip(line + level, " \t")), " \t#"), level, output);
     return 1;
 }
 
