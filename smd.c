@@ -281,7 +281,7 @@ static void processMathBlock(char* line, FILE* output) {
     fputs("\\]\n", output);
 }
 
-static void processTableRow(char* line, FILE* output) {
+static void processTableRow(char* line, int header, FILE* output) {
     char* p = line + 1;
     if (isLineEnd(skip(p, " \t|-:")))
         return;  // ignore divider row
@@ -289,9 +289,9 @@ static void processTableRow(char* line, FILE* output) {
     for (char* end = p; (end = strchr(end + 1, '|'));) {
         if (end[-1] == '\\')
             continue;
-        fputs("<td>", output);
+        fputs(header ? "<th>" : "<td>", output);
         processInlines(skip(p, " \t"), rskip(end, " \t"), output);
-        fputs("</td>", output);
+        fputs(header ? "</th>" : "</td>", output);
         p = end + 1;
     }
     fputs("</tr>\n", output);
@@ -299,10 +299,10 @@ static void processTableRow(char* line, FILE* output) {
 
 static void processTable(char* line, FILE* output) {
     fputs("<table>\n<thead>\n", output);
-    processTableRow(line, output);
+    processTableRow(line, 1, output);
     fputs("</thead>\n<tbody>\n", output);
     while (startsWith(peekLine(), "|"))
-        processTableRow(readLine(), output);
+        processTableRow(readLine(), 0, output);
     fputs("</tbody>\n</table>\n", output);
 }
 
