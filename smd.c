@@ -139,15 +139,15 @@ static char* processImage(char* start, FILE* output) {
 }
 
 static char* processBackslash(char* start, FILE* output) {
-    char* p = start;
     if (start[1] == '\n') {
         fputs("<br>\n", output);
         return start + 2;
+    } else if (ispunct(start[1])) {
+        return printEscape(start + 1, output);
+    } else {
+        fputc(start[0], output);
+        return start + 1;
     }
-    fputc(*p++, output);
-    if (*p != 0)
-        fputc(*p++, output);
-    return p;
 }
 
 static char* processWrap(char* start, char* wrap, int tightbits,
