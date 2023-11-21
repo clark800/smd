@@ -171,8 +171,8 @@ static char* processImage(char* start, FILE* output) {
     return hrefEnd + 1;
 }
 
-static char* processWrap(char* start, char* wrap, int intraword,
-        int tightbits, char* openTags[], char* closeTags[], FILE* output) {
+static char* processWrap(char* start, char* wrap, int intraword, int tight,
+        char* openTags[], char* closeTags[], FILE* output) {
     size_t maxlen = strlen(wrap);
     char search[] = {wrap[0], '\0'};
     size_t length = strspn(start, search);
@@ -187,7 +187,6 @@ static char* processWrap(char* start, char* wrap, int intraword,
     char* end = strstr(content, delimiter);
     while (end && end[-1] == '\\')
         end = strstr(end + 1, delimiter);
-    int tight = tightbits & (1 << (length - 1));
     if (end == NULL || (tight && (isspace(content[0]) || isspace(end[-1]))))
         return start;
     if (!intraword && (isalnum(start[-1]) || isalnum(end[length])))
@@ -207,13 +206,13 @@ static char* processInlineCode(char* start, FILE* output) {
 static char* processEmphasis(char* start, FILE* output) {
     static char* openTags[] = {"<em>", "<strong>", "<em><strong>"};
     static char* closeTags[] = {"</em>", "</strong>", "</strong></em>"};
-    return processWrap(start, "***", 1, 7, openTags, closeTags, output);
+    return processWrap(start, "***", 1, 1, openTags, closeTags, output);
 }
 
 static char* processInlineMath(char* start, FILE* output) {
-    static char* openTags[] = {"\\(", "\\["};
-    static char* closeTags[] = {"\\)", "\\]"};
-    return processWrap(start, "$$", 0, 1, openTags, closeTags, output);
+    static char* openTags[] = {"\\("};
+    static char* closeTags[] = {"\\)"};
+    return processWrap(start, "$", 0, 1, openTags, closeTags, output);
 }
 
 static void processInlines(char* line, FILE* output) {
