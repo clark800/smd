@@ -8,10 +8,6 @@ static char stack[256] = {0};
 static unsigned char depth = 0;
 static FILE *input = NULL;
 
-void initContext(FILE* in) {
-    input = in;
-}
-
 static char* getLine(FILE* input, int peek) {
     static char peeked = 0, flipped = 0;
     static char bufferA[4096], bufferB[sizeof(bufferA)];
@@ -151,7 +147,7 @@ char* readLine() {
 
 int main(void) {
     char* line = NULL;
-    initContext(stdin);
+    input = stdin;
     while ((line = beginBlock(stdout)))
         processBlock(line, stdout);
 }
