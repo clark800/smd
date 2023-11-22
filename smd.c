@@ -128,8 +128,8 @@ char* closeBlocks(char* line, FILE* output) {
     return line;
 }
 
-char* beginBlock(FILE* output) {
-    return openBlocks(closeBlocks(getLine(input, 0), output), output);
+char* beginBlock(char* line, FILE* output) {
+    return openBlocks(closeBlocks(line, output), output);
 }
 
 char* peekLine() {
@@ -148,6 +148,6 @@ char* readLine() {
 int main(void) {
     char* line = NULL;
     input = stdin;
-    while ((line = beginBlock(stdout)))
+    while ((line = beginBlock(getLine(input, 0), stdout)))
         processBlock(line, stdout);
 }
