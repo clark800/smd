@@ -3,27 +3,11 @@
 #include <ctype.h>
 #include "inline.h"
 
-char* skip(char* start, char* characters) {
-    return start == NULL ? NULL : start + strspn(start, characters);
-}
-
 void fputr(char* start, char* end, FILE* output) {
     if (end)
         fwrite(start, sizeof(char), end - start, output);
     else
         fputs(start, output);
-}
-
-static size_t min(size_t a, size_t b) {
-    return a > b ? b : a;
-}
-
-static int count(char* start, char* end, char c) {
-    int count = 0;
-    for (char* p = start; p < end; p++)
-        if (p[0] == c && p[-1] != '\\')
-            count += 1;
-    return count;
 }
 
 static char* printEscape(char* start, FILE* output) {
@@ -57,7 +41,7 @@ static char* printBackslash(char* start, FILE* output) {
     }
 }
 
-void printEscaped(char* start, char* end, FILE* output) {
+char* printEscaped(char* start, char* end, FILE* output) {
     char* brk = NULL;
     for (char* p = start; !end || p < end;) {
         brk = strpbrk(p, "<>&\\");
@@ -72,6 +56,7 @@ void printEscaped(char* start, char* end, FILE* output) {
             default: p = printEscape(brk, output); break;
         }
     }
+    return end;
 }
 
 static char* processTag(char* start, FILE* output) {
@@ -152,75 +137,50 @@ static char* processImage(char* start, FILE* output) {
     return hrefEnd + 1;
 }
 
-static char* getNextRun(char* start, char* delimiter) {
-    char* endrun = strstr(start, delimiter);
-    while (endrun && endrun[-1] == '\\')
-        endrun = strstr(endrun + 1, delimiter);
-    return endrun;
-}
-
-static char* findEnd(char* start, char* delimiter, int intraword, int tight) {
-    char* run = start;
-    size_t length = strlen(delimiter);
-    while ((run = getNextRun(skip(run, delimiter), delimiter))) {
-        char* end = skip(run, delimiter) - length;
-        if (count(start + length, end, delimiter[0]) % 2 == 0 &&
-            !(tight && isspace(run[-1])) &&
-            !(!intraword && isalnum(end[length])))
-            return end;
-    }
-    return NULL;
-}
-
-static char* processSpan(char* start, char* wrap, int intraword, int tight,
-        int process, char* openTags[], char* closeTags[], FILE* output) {
-    if (!intraword && isalnum(start[-1]))
-        return start;
-    size_t runlength = strspn(start, wrap);
-    if (tight && isspace(start[runlength]))
-        return start;
-    size_t length = min(runlength, strlen(wrap));
-    char delimiter[8];
-    strcpy(delimiter, wrap);
-    char* end = NULL;
-    for (; length > 0 && end == NULL; length--) {
-        delimiter[length] = '\0';
-        if ((end = findEnd(start, delimiter, intraword, tight)))
+static char* processSpan(char* start, char* c, int intraword, int tight,
+        int process, char* openTag, char* closeTag, FILE* output) {
+    size_t length = strspn(start, c);
+    if ((tight && isspace(start[length])) || (!intraword && isalnum(start[-1])))
+        return printEscaped(start, start + length, output);
+    char* run = strchr(start + length, c[0]);
+    for (; run; run = strchr(run + strspn(run, c), c[0])) {
+        while (run && run[-1] == '\\')
+            run = strchr(run + 1, c[0]);
+        if (run && strspn(run, c) == length && !(tight && isspace(run[-1])) &&
+                !(!intraword && isalnum(run[length])))
             break;
     }
-    if (!end)
-        return start;
-    fputs(openTags[length-1], output);
+    if (!run)
+        return printEscaped(start, start + length, output);
+    fputs(openTag, output);
     if (process)
-        processInlines(start + length, end, output);
+        processInlines(start + length, run, output);
     else
-        printEscaped(start + length, end, output);
-    fputs(closeTags[length-1], output);
-    return end + length;
+        printEscaped(start + length, run, output);
+    fputs(closeTag, output);
+    return run + length;
 }
 
 static char* processInlineCode(char* start, FILE* output) {
-    static char* openTags[] = {"<code>", "<code>", "<code>"};
-    static char* closeTags[] = {"</code>", "</code>", "</code>"};
-    return processSpan(start, "```", 1, 0, 0, openTags, closeTags, output);
-}
-
-static char* processEmphasis(char* start, FILE* output) {
-    static char* openTags[] = {"<em>", "<strong>", "<em><strong>"};
-    static char* closeTags[] = {"</em>", "</strong>", "</strong></em>"};
-    return processSpan(start, "***", 1, 1, 1, openTags, closeTags, output);
+    return processSpan(start, "`", 1, 0, 0, "<code>", "</code>", output);
 }
 
 static char* processInlineMath(char* start, FILE* output) {
-    static char* openTags[] = {"\\("};
-    static char* closeTags[] = {"\\)"};
-    return processSpan(start, "$", 0, 1, 0, openTags, closeTags, output);
+    return processSpan(start, "$", 0, 1, 0, "\\(", "\\)", output);
+}
+
+static char* processEmphasis(char* start, FILE* output) {
+    return processSpan(start, "_", 1, 1, 1, "<em>", "</em>", output);
+}
+
+static char* processStrong(char* start, FILE* output) {
+    return processSpan(start, "*", 1, 1, 1, "<strong>", "</strong>", output);
 }
 
 void processInlines(char* start, char* end, FILE* output) {
     char* p = start;
     while (*p != 0) {
-        char* brk = strpbrk(p, "`$*<![\\");
+        char* brk = strpbrk(p, "`$*_<![\\");
         if (!brk || (end && brk > end))
             brk = end;
         printEscaped(p, brk, output);
@@ -229,13 +189,14 @@ void processInlines(char* start, char* end, FILE* output) {
         switch (*brk) {
             case '`': p = processInlineCode(brk, output); break;
             case '$': p = processInlineMath(brk, output); break;
-            case '*': p = processEmphasis(brk, output); break;
+            case '*': p = processStrong(brk, output); break;
+            case '_': p = processEmphasis(brk, output); break;
             case '<': p = processTag(brk, output); break;
             case '!': p = processImage(brk, output); break;
             case '[': p = processLink(brk, output); break;
             case '\\': p = printBackslash(brk, output); break;
         }
         if (p == brk)
-            fputc(*p++, output);
+            printEscape(p++, output);
     }
 }

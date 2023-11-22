@@ -8,6 +8,10 @@ static int isLineEnd(char* s) {
     return s[0] == '\n' || s[0] == '\r';
 }
 
+char* skip(char* start, char* characters) {
+    return start == NULL ? NULL : start + strspn(start, characters);
+}
+
 static char* trim(char* s, char* characters) {
     for (size_t i = strlen(s); i > 0 && strchr(characters, s[i - 1]); i--)
         s[i - 1] = '\0';
