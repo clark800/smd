@@ -44,6 +44,19 @@ static char* skipPrefixes(char* line) {
     return line;
 }
 
+char* readLine() {
+    return skipPrefixes(getLine(input, 0));
+}
+
+char* peekLine() {
+    return skipPrefixes(getLine(input, 1));
+}
+
+int peek() {
+    char* line = peekLine();
+    return line ? line[0] : EOF;
+}
+
 char* openBlocks(char* line, FILE* output) {
     while(1) {
         char c = line ? line[0] : 0;
@@ -130,19 +143,6 @@ char* closeBlocks(char* line, FILE* output) {
 
 char* beginBlock(char* line, FILE* output) {
     return openBlocks(closeBlocks(line, output), output);
-}
-
-char* peekLine() {
-    return skipPrefixes(getLine(input, 1));
-}
-
-int peek() {
-    char* line = peekLine();
-    return line ? line[0] : EOF;
-}
-
-char* readLine() {
-    return skipPrefixes(getLine(input, 0));
 }
 
 int main(void) {
