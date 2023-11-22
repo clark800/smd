@@ -5,11 +5,10 @@
 
 static char stack[256] = {0};
 static unsigned char depth = 0;
-static FILE *input = NULL, *output = NULL;
+static FILE *input = NULL;
 
-void initContext(FILE* in, FILE* out) {
+void initContext(FILE* in) {
     input = in;
-    output = out;
 }
 
 static char* getLine(FILE* input, int peek) {
@@ -48,7 +47,7 @@ static char* skipPrefixes(char* line) {
     return line;
 }
 
-char* openBlocks(char* line) {
+char* openBlocks(char* line, FILE* output) {
     while(1) {
         char c = line ? line[0] : 0;
         switch (c) {
@@ -77,7 +76,7 @@ char* openBlocks(char* line) {
     }
 }
 
-void closeLevel(char index) {
+void closeLevel(char index, FILE* output) {
     for (unsigned char i = 0; i < depth - index; i++) {
         switch (stack[depth - i - 1]) {
             case '>': fputs("</blockquote>\n", output); break;
@@ -90,10 +89,10 @@ void closeLevel(char index) {
     depth = index;
 }
 
-char* closeBlocks(char* line) {
+char* closeBlocks(char* line, FILE* output) {
     unsigned char level = 0;
     if (line == NULL) {
-        closeLevel(0);
+        closeLevel(0, output);
         return NULL;
     }
     for (; level < depth; level++) {
@@ -106,7 +105,7 @@ char* closeBlocks(char* line) {
                 break;
             case '.':
                 if (isdigit(line[0]) && line[1] == '.' && line[2] == ' ') {
-                    closeLevel(++level);
+                    closeLevel(++level, output);
                     fputs("</li>\n<li>\n", output);
                     return line + 3;
                 } else if (line[0] == ' ' && line[1] == ' ' && line[2] == ' ') {
@@ -117,7 +116,7 @@ char* closeBlocks(char* line) {
             case '+':
             case '*':
                 if (line[0] == stack[level] && line[1] == ' ') {
-                    closeLevel(++level);
+                    closeLevel(++level, output);
                     fputs("</li>\n<li>\n", output);
                     return line + 2;
                 } else if (line[0] == ' ' && line[1] == ' ') {
@@ -126,14 +125,14 @@ char* closeBlocks(char* line) {
                 }
                 break;
         }
-        closeLevel(level);
+        closeLevel(level, output);
         return line;
     }
     return line;
 }
 
-char* beginBlock() {
-    return openBlocks(closeBlocks(getLine(input, 0)));
+char* beginBlock(FILE* output) {
+    return openBlocks(closeBlocks(getLine(input, 0), output), output);
 }
 
 char* peekLine() {

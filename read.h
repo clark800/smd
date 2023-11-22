@@ -1,5 +1,5 @@
-void initContext(FILE* input, FILE* output);
-char* beginBlock();
+void initContext(FILE* input);
+char* beginBlock(FILE* output);
 char* peekLine();
 char* readLine();
 int peek();

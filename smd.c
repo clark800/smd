@@ -194,8 +194,8 @@ static void processBlock(char* line, FILE* output) {
 
 int main(void) {
     char* line = NULL;
-    initContext(stdin, stdout);
-    while ((line = beginBlock()))
+    initContext(stdin);
+    while ((line = beginBlock(stdout)))
         if (!isBlank(line))
             processBlock(line, stdout);
 }
