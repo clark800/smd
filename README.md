@@ -42,6 +42,7 @@ Other implementation differences:
 
 Other minor/technical differences:
 * Lines are limited to 4094 characters
+* Simpler rules for span delimiter adjacencies
 * Blocks are delimited by a prefix rather than a pattern
 * Trailing characters after code fences and thematic breaks are discarded
 * Autolink processing is simplified
