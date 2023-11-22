@@ -1,3 +1,3 @@
-char* peekLine();
-char* readLine();
-int peek();
+char* peekLine(void);
+char* readLine(void);
+int peek(void);

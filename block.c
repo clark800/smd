@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include "inline.h"
 #include "read.h"
+#include "block.h"
 
 static int isLineEnd(char* s) {
     return s[0] == '\n' || s[0] == '\r';
@@ -12,7 +13,7 @@ static int startsWith(char* string, char* prefix) {
     return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
 }
 
-char* skip(char* start, char* characters) {
+static char* skip(char* start, char* characters) {
     return start == NULL ? NULL : start + strspn(start, characters);
 }
 
@@ -115,7 +116,7 @@ static int processHeading(char* line, FILE* output) {
     return 1;
 }
 
-int processUnderline(char* line, FILE* output) {
+static int processUnderline(char* line, FILE* output) {
     char* next = peekLine();
     if (next && next[0] == '=' && isLineEnd(skip(skip(next, "="), " \t")))
         printHeading(line, 1, output);

@@ -2,11 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "read.h"
 #include "block.h"
 
 static char stack[256] = {0};
 static unsigned char depth = 0;
-static FILE *input = NULL;
+static FILE *INPUT = NULL;
 
 static char* getLine(FILE* input, int peek) {
     static char peeked = 0, flipped = 0;
@@ -44,20 +45,20 @@ static char* skipPrefixes(char* line) {
     return line;
 }
 
-char* readLine() {
-    return skipPrefixes(getLine(input, 0));
+char* readLine(void) {
+    return skipPrefixes(getLine(INPUT, 0));
 }
 
-char* peekLine() {
-    return skipPrefixes(getLine(input, 1));
+char* peekLine(void) {
+    return skipPrefixes(getLine(INPUT, 1));
 }
 
-int peek() {
+int peek(void) {
     char* line = peekLine();
     return line ? line[0] : EOF;
 }
 
-char* openBlocks(char* line, FILE* output) {
+static char* openBlocks(char* line, FILE* output) {
     while(1) {
         char c = line ? line[0] : 0;
         switch (c) {
@@ -86,7 +87,7 @@ char* openBlocks(char* line, FILE* output) {
     }
 }
 
-void closeLevel(char index, FILE* output) {
+static void closeLevel(char index, FILE* output) {
     for (unsigned char i = 0; i < depth - index; i++) {
         switch (stack[depth - i - 1]) {
             case '>': fputs("</blockquote>\n", output); break;
@@ -99,7 +100,7 @@ void closeLevel(char index, FILE* output) {
     depth = index;
 }
 
-char* closeBlocks(char* line, FILE* output) {
+static char* closeBlocks(char* line, FILE* output) {
     unsigned char level = 0;
     if (line == NULL) {
         closeLevel(0, output);
@@ -141,13 +142,13 @@ char* closeBlocks(char* line, FILE* output) {
     return line;
 }
 
-char* beginBlock(char* line, FILE* output) {
+static char* beginBlock(char* line, FILE* output) {
     return openBlocks(closeBlocks(line, output), output);
 }
 
 int main(void) {
     char* line = NULL;
-    input = stdin;
-    while ((line = beginBlock(getLine(input, 0), stdout)))
+    INPUT = stdin;
+    while ((line = beginBlock(getLine(INPUT, 0), stdout)))
         processBlock(line, stdout);
 }
