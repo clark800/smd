@@ -7,5 +7,5 @@
 if [ "$1" = "install" ]; then
     PREFIX="${PREFIX:-/usr/local}"
     mkdir -p "$PREFIX/bin"
-    cp smd "$PREFIX/bin/"
+    mv smd "$PREFIX/bin/"
 fi
