@@ -144,7 +144,7 @@ static int processFootnote(char* line, FILE* output) {
     if (end == NULL || end == name || end[1] != ':')
         return 0;
     fputs("<p id=\"", output);
-    fputr(name, end, output);
+    printRaw(name, end, output);
     fputs("\">\n", output);
     processInlines(skip(end + 2, " \t"), NULL, output);
     while (isspace(peek()))  // allows blank lines

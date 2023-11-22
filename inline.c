@@ -3,7 +3,7 @@
 #include <ctype.h>
 #include "inline.h"
 
-void fputr(char* start, char* end, FILE* output) {
+void printRaw(char* start, char* end, FILE* output) {
     if (end)
         fwrite(start, sizeof(char), end - start, output);
     else
@@ -23,7 +23,7 @@ static char* printEscape(char* start, FILE* output) {
 static char* printAmpersand(char* start, FILE* output) {
     char* brk = strpbrk(start + 1, "<>&; \t\n");
     if (brk && brk[0] == ';' && brk - start > 1) {
-        fputr(start, brk + 1, output);
+        printRaw(start, brk + 1, output);
         return brk + 1;  // HTML Entity
     }
     return printEscape(start, output);
@@ -47,7 +47,7 @@ char* printEscaped(char* start, char* end, FILE* output) {
         brk = strpbrk(p, "<>&\\");
         if (!brk || (end && brk > end))
             brk = end;
-        fputr(p, brk, output);
+        printRaw(p, brk, output);
         if (!brk || brk == end)
             break;
         switch (brk[0]) {
@@ -71,13 +71,13 @@ static char* processTag(char* start, FILE* output) {
     char* atsign = memchr(content, '@', end - content);
     if (space != NULL || (colon == NULL && atsign == NULL)) {
         // assume this is an HTML tag
-        fputr(start, end + 1, output);
+        printRaw(start, end + 1, output);
         return end + 1;
     }
     fputs("<a href=\"", output);
     if (colon == NULL && atsign != NULL)
         fputs("mailto:", output);
-    fputr(content, end, output);
+    printRaw(content, end, output);
     fputs("\">", output);
     printEscaped(content, end, output);
     fputs("</a>", output);
@@ -98,7 +98,7 @@ static char* processLink(char* start, FILE* output) {
         return start;
     if (title[0] == '^') {
         fputs("<sup><a href=\"#", output);
-        fputr(title + 1, titleEnd, output);
+        printRaw(title + 1, titleEnd, output);
         fputs("\">*</a></sup>", output);
         return titleEnd + 1;
     }
@@ -110,7 +110,7 @@ static char* processLink(char* start, FILE* output) {
     if (hrefEnd == NULL)
         return start;
     fputs("<a href=\"", output);
-    fputr(href, hrefEnd, output);
+    printRaw(href, hrefEnd, output);
     fputs("\">", output);
     printEscaped(title, titleEnd, output);
     fputs("</a>", output);
@@ -130,9 +130,9 @@ static char* processImage(char* start, FILE* output) {
     if (hrefEnd == NULL)
         return start;
     fputs("<img src=\"", output);
-    fputr(href, hrefEnd, output);
+    printRaw(href, hrefEnd, output);
     fputs("\" alt=\"", output);
-    fputr(title, titleEnd, output);
+    printRaw(title, titleEnd, output);
     fputs("\">", output);
     return hrefEnd + 1;
 }
