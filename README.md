@@ -20,7 +20,7 @@ It supports most of the features of markdown including:
 * Bold and italic text (but `*` always means bold and `_` always means italic)
 * Horizontal rules (`---` only)
 * Inline HTML (including entities)
-* Line breaks (`\\` only)
+* Line breaks (backslash only)
 
 It also supports these extensions:
 * Mathjax spans and blocks with `$` and `$$`
