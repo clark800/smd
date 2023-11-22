@@ -47,3 +47,10 @@ Other minor/technical differences:
 * Trailing characters after code fences and thematic breaks are discarded
 * Autolink processing is simplified
 * Does not check for non-ASCII whitespace characters
+
+Usage
+-----
+
+Install by running `sudo ./make install`. This requires a C compiler.
+
+Then pass markdown over stdin: `smd < filename.md`
