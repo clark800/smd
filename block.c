@@ -8,46 +8,36 @@ static int isLineEnd(char* s) {
     return s[0] == '\n' || s[0] == '\r';
 }
 
+static int startsWith(char* string, char* prefix) {
+    return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
+}
+
 char* skip(char* start, char* characters) {
     return start == NULL ? NULL : start + strspn(start, characters);
 }
 
-static char* trim(char* s, char* characters) {
+static char* rskip(char* end, char* characters) {
+    for (; strchr(characters, end[-1]); end--);
+    return end;
+}
+
+static char* rtrim(char* s, char* characters) {
     for (size_t i = strlen(s); i > 0 && strchr(characters, s[i - 1]); i--)
         s[i - 1] = '\0';
     return s;
-}
-
-static char* chomp(char* line) {
-    size_t length = strlen(line);
-    if (line[length - 1] == '\n')
-        line[--length] = '\0';
-    if (line[length - 1] == '\r')
-        line[--length] = '\0';
-    return line;
-}
-
-static int isBlank(char* line) {
-    return line == NULL || isLineEnd(skip(line, " \t"));
-}
-
-static int startsWith(char* string, char* prefix) {
-    return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
 }
 
 static char* unindent(char* p) {
     return startsWith(p, "    ") ? p + 4 : (p && p[0] == '\t' ? p + 1 : NULL);
 }
 
-static char* rskip(char* end, char* characters) {
-    int i = 0;
-    for (; strchr(characters, end[-1 - i]); i++);
-    return end - i;
+static int isBlank(char* line) {
+    return line == NULL || isLineEnd(skip(line, " \t"));
 }
 
 static void processCodeFence(char* line, FILE* output) {
     size_t length = strspn(line, "`");
-    char* language = chomp(skip(line + length, " \t"));
+    char* language = rtrim(skip(line + length, " \t"), " \t\r\n");
     if (language[0] != '\0') {
         fputs("<pre>\n<code class=\"language-", output);
         fputs(language, output);
@@ -113,7 +103,7 @@ static void printHeading(char* title, int level, FILE* output) {
     openTag[2] = '0' + level;
     closeTag[3] = '0' + level;
     fputs(openTag, output);
-    processInlines(trim(chomp(skip(title, " \t")), " \t"), NULL, output);
+    processInlines(rtrim(skip(title, " \t"), " \t\r\n"), NULL, output);
     fputs(closeTag, output);
 }
 
@@ -121,7 +111,7 @@ static int processHeading(char* line, FILE* output) {
     size_t level = strspn(line, "#");
     if (level == 0 || level > 6 || !isblank(*(line + level)))
         return 0;
-    printHeading(trim(chomp(skip(line + level, " \t")), " \t#"), level, output);
+    printHeading(rtrim(skip(line + level, " \t"), " \t#\r\n"), level, output);
     return 1;
 }
 
