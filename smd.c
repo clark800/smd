@@ -36,10 +36,10 @@ static char* skipPrefixes(char* line) {
         char c = stack[i];
         if (c == '>' && line[0] == '>')
             line += line[1] == ' ' ? 2 : 1;
-        if (c == '.' && line[0] == ' ' && line[1] == ' ' && line[2] == ' ')
-            line += 3;
         if (strchr("*-+", c) && line[0] == ' ' && line[1] == ' ')
             line += 2;
+        if (c == '.' && line[0] == ' ' && line[1] == ' ' && line[2] == ' ')
+            line += 3;
     }
     return line;
 }
@@ -65,9 +65,9 @@ char* openBlocks(char* line, FILE* output) {
                 fputs("<blockquote>\n", output);
                 line += line[1] == ' ' ? 2 : 1;
                 break;
+            case '*':
             case '-':
             case '+':
-            case '*':
                 if (line[1] != ' ')
                     return line;
                 fputs("<ul>\n<li>\n", output);
@@ -90,9 +90,9 @@ void closeLevel(char index, FILE* output) {
     for (unsigned char i = 0; i < depth - index; i++) {
         switch (stack[depth - i - 1]) {
             case '>': fputs("</blockquote>\n", output); break;
+            case '*':
             case '-':
-            case '+':
-            case '*': fputs("</li>\n</ul>\n", output); break;
+            case '+': fputs("</li>\n</ul>\n", output); break;
             case '.': fputs("</li>\n</ol>\n", output); break;
         }
     }
@@ -113,18 +113,9 @@ char* closeBlocks(char* line, FILE* output) {
                     continue;
                 }
                 break;
-            case '.':
-                if (isdigit(line[0]) && line[1] == '.' && line[2] == ' ') {
-                    closeLevel(++level, output);
-                    fputs("</li>\n<li>\n", output);
-                    return line + 3;
-                } else if (line[0] == ' ' && line[1] == ' ' && line[2] == ' ') {
-                    line += 3;
-                    continue;
-                }
+            case '*':
             case '-':
             case '+':
-            case '*':
                 if (line[0] == stack[level] && line[1] == ' ') {
                     closeLevel(++level, output);
                     fputs("</li>\n<li>\n", output);
@@ -134,6 +125,15 @@ char* closeBlocks(char* line, FILE* output) {
                     continue;
                 }
                 break;
+            case '.':
+                if (isdigit(line[0]) && line[1] == '.' && line[2] == ' ') {
+                    closeLevel(++level, output);
+                    fputs("</li>\n<li>\n", output);
+                    return line + 3;
+                } else if (line[0] == ' ' && line[1] == ' ' && line[2] == ' ') {
+                    line += 3;
+                    continue;
+                }
         }
         closeLevel(level, output);
         return line;
