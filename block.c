@@ -5,10 +5,6 @@
 #include "read.h"
 #include "block.h"
 
-static int isLineEnd(char* s) {
-    return s[0] == '\n' || s[0] == '\r';
-}
-
 static int startsWith(char* string, char* prefix) {
     return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
 }
@@ -32,8 +28,9 @@ static char* unindent(char* p) {
     return startsWith(p, "    ") ? p + 4 : (p && p[0] == '\t' ? p + 1 : NULL);
 }
 
-static int isBlank(char* line) {
-    return line == NULL || isLineEnd(skip(line, " \t"));
+static int isBlankLine(char* line) {
+    char* end = skip(line, " \t");
+    return end[0] == '\n' || end[0] == '\r';
 }
 
 static void processCodeFence(char* line, FILE* output) {
@@ -64,7 +61,7 @@ static void processMathBlock(char* line, FILE* output) {
     fputs("\\[", output);
     do {
         char* end = strstr(line, "$$");
-        if (end && isLineEnd(skip(end + 2, " \t"))) {
+        if (end && isBlankLine(end + 2)) {
             printEscaped(line, end, output);
             break;
         }
@@ -75,7 +72,7 @@ static void processMathBlock(char* line, FILE* output) {
 
 static void processTableRow(char* line, int header, FILE* output) {
     char* p = line + 1;
-    if (isLineEnd(skip(p, " \t|-:")))
+    if (isBlankLine(skip(p, " \t|-:")))
         return;  // ignore divider row
     fputs("<tr>", output);
     for (char* end = p; (end = strchr(end + 1, '|'));) {
@@ -118,9 +115,9 @@ static int processHeading(char* line, FILE* output) {
 
 static int processUnderline(char* line, FILE* output) {
     char* next = peekLine();
-    if (next && next[0] == '=' && isLineEnd(skip(skip(next, "="), " \t")))
+    if (next && next[0] == '=' && isBlankLine(skip(next, "=")))
         printHeading(line, 1, output);
-    else if (next && next[0] == '-' && isLineEnd(skip(skip(next, "-"), " \t")))
+    else if (next && next[0] == '-' && isBlankLine(skip(next, "-")))
         printHeading(line, 2, output);
     else return 0;
     readLine();
@@ -147,7 +144,7 @@ static int processFootnote(char* line, FILE* output) {
 static int isParagraphInterrupt(char* line) {
     static char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", "> ",
         "= ", "| ", "# ", "## ", "### ", "#### ", "##### ", "###### "};
-    if (isBlank(line))
+    if (!line || isBlankLine(line))
         return 1;
     for (size_t i = 0; i < sizeof(interrupts)/sizeof(char*); i++)
         if (startsWith(line, interrupts[i]))
@@ -166,7 +163,7 @@ static void processParagraph(char* line, FILE* output) {
 }
 
 void processBlock(char* line, FILE* output) {
-    if (isBlank(line))
+    if (isBlankLine(line))
         return;
     if (startsWith(line, "---"))
         fputs("<hr>\n", output);
