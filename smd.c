@@ -9,6 +9,10 @@ static char stack[256] = {0};
 static unsigned char depth = 0;
 static FILE *INPUT = NULL;
 
+static int startsWith(char* string, char* prefix) {
+    return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
+}
+
 static char* getLine(FILE* input, int peek) {
     static char peeked = 0, flipped = 0;
     static char bufferA[4096], bufferB[sizeof(bufferA)];
@@ -35,8 +39,10 @@ static char* getLine(FILE* input, int peek) {
 static char* skipPrefixes(char* line) {
     for (int i = 0; i < depth; i++) {
         char c = stack[i];
-        if ((c == '>' || c == '=') && line[0] == c)
+        if (c == '>' && line[0] == c)
             line += line[1] == ' ' ? 2 : 1;
+        if (c == '/')
+            line += startsWith(line, "    ") ? 4 : (line[0] == '\t' ? 1 : 0);
         if (strchr("*-+", c) && line[0] == ' ' && line[1] == ' ')
             line += 2;
         if (c == '.' && line[0] == ' ' && line[1] == ' ' && line[2] == ' ')
@@ -63,20 +69,28 @@ static char* openBlocks(char* line, FILE* output) {
         char c = line ? line[0] : 0;
         switch (c) {
             case '>':
-            case '=':
-                if (line[1] != ' ')
-                    return line;
-                fputs(c == '>' ? "<blockquote>\n" : "<aside>\n", output);
-                line += 2;
-                break;
+                if (startsWith(line, "> ")) {
+                    fputs("<blockquote>\n", output);
+                    line += 2;
+                    break;
+                }
+                return line;
+            case '/':
+                if (startsWith(line, "/// ")) {
+                    fputs("<aside>\n", output);
+                    line += 4;
+                    break;
+                }
+                return line;
             case '*':
             case '-':
             case '+':
-                if (line[1] != ' ')
-                    return line;
-                fputs("<ul>\n<li>\n", output);
-                line += 2;
-                break;
+                if (line[1] == ' ') {
+                    fputs("<ul>\n<li>\n", output);
+                    line += 2;
+                    break;
+                }
+                return line;
            default:
                 if (isdigit(c) && line[1] == '.' && line[2] == ' ') {
                     c = '.';
@@ -94,7 +108,7 @@ static void closeLevel(char index, FILE* output) {
     for (unsigned char i = 0; i < depth - index; i++) {
         switch (stack[depth - i - 1]) {
             case '>': fputs("</blockquote>\n", output); break;
-            case '=': fputs("</aside>\n", output); break;
+            case '/': fputs("</aside>\n", output); break;
             case '*':
             case '-':
             case '+': fputs("</li>\n</ul>\n", output); break;
@@ -113,9 +127,14 @@ static char* closeBlocks(char* line, FILE* output) {
     for (; level < depth; level++) {
         switch (stack[level]) {
             case '>':
-            case '=':
                 if (line[0] == stack[level] && strchr(" \r\n", line[1])) {
                     line += line[1] == ' ' ? 2 : 1;
+                    continue;
+                }
+                break;
+            case '/':
+                if (startsWith(line, "    ") || strchr("\t\r\n", line[0])) {
+                    line += line[0] == ' ' ? 4 : (line[0] == '\t' ? 1 : 0);
                     continue;
                 }
                 break;

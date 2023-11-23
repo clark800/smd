@@ -89,11 +89,15 @@ Paragraph [link[a]](page(pa(r)en).html)
 > Last Line
 After
 
-= 1. Aside
-= 2. Item
-=    - Subitem
-=    - Subitem
-= 3. Item
+/// 1. Aside
+    2. Item
+       - Subitem
+       - Subitem
+    3. Item
+
+    # Aside title
+        Code block
+    Paragraph
 
 > Blockquote
 > ...

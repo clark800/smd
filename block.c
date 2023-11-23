@@ -51,8 +51,8 @@ static void processCodeFence(char* line, FILE* output) {
 static void processCodeBlock(char* line, FILE* output) {
     fputs("<pre>\n<code>\n", output);
     printEscaped(unindent(line), NULL, output);
-    while ((line = unindent(readLine())))
-        printEscaped(line, NULL, output);
+    while (unindent(peekLine()))
+        printEscaped(unindent(readLine()), NULL, output);
     fputs("</code>\n</pre>\n", output);
 }
 
@@ -143,7 +143,7 @@ static int processFootnote(char* line, FILE* output) {
 
 static int isParagraphInterrupt(char* line) {
     static char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", "> ",
-        "= ", "| ", "# ", "## ", "### ", "#### ", "##### ", "###### "};
+        "/// ", "| ", "# ", "## ", "### ", "#### ", "##### ", "###### "};
     if (!line || isBlankLine(line))
         return 1;
     for (size_t i = 0; i < sizeof(interrupts)/sizeof(char*); i++)

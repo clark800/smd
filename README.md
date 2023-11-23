@@ -26,7 +26,7 @@ It also supports these extensions:
 * Mathjax spans and blocks with `$` and `$$`
 * Asterisk footnote links (`[^id]` and `[^id]: footnote`)
 * Tables
-* Aside containers (like blockquotes, but uses `=` and renders `<aside>` tags)
+* Aside containers (`/// ` until next non-indented line)
 
 Markdown features that are not supported:
 * Reference-style links (can use footnote links instead)
