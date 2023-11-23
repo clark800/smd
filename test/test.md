@@ -17,6 +17,7 @@ _**a b** c_
 
 **a * b**
 
+<a href="&">link</a>
 <a@b.com>\
 
 ***This*** is ``*not* **code\***

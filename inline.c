@@ -3,11 +3,12 @@
 #include <ctype.h>
 #include "inline.h"
 
-void printRaw(char* start, char* end, FILE* output) {
+char* printRaw(char* start, char* end, FILE* output) {
     if (end)
         fwrite(start, sizeof(char), end - start, output);
     else
         fputs(start, output);
+    return end;
 }
 
 static char* printEscape(char* start, FILE* output) {
@@ -22,10 +23,8 @@ static char* printEscape(char* start, FILE* output) {
 
 static char* printAmpersand(char* start, FILE* output) {
     char* brk = strpbrk(start + 1, "<>&; \t\n");
-    if (brk && brk[0] == ';' && brk - start > 1) {
-        printRaw(start, brk + 1, output);
-        return brk + 1;  // HTML Entity
-    }
+    if (brk && brk[0] == ';' && brk - start > 1)
+        return printRaw(start, brk + 1, output); // HTML Entity
     return printEscape(start, output);
 }
 
@@ -59,41 +58,54 @@ char* printEscaped(char* start, char* end, FILE* output) {
     return end;
 }
 
-static char* processTag(char* start, FILE* output) {
-    char* content = start + 1;
-    if (isspace(content[0]))
-        return printEscape(start, output);
-    char* end = strchr(content, '>');
-    if (end == NULL || end == content)
-        return printEscape(start, output);
-    char* space = memchr(content, ' ', end - content);
-    char* colon = memchr(content, ':', end - content);
-    char* atsign = memchr(content, '@', end - content);
-    if (space != NULL || (colon == NULL && atsign == NULL)) {
-        // assume this is an HTML tag
-        printRaw(start, end + 1, output);
-        return end + 1;
-    }
-    fputs("<a href=\"", output);
-    if (colon == NULL && atsign != NULL)
-        fputs("mailto:", output);
-    printRaw(content, end, output);
-    fputs("\">", output);
-    printEscaped(content, end, output);
-    fputs("</a>", output);
-    return end + 1;
-}
-
-static char* findClose(char* p, char* brackets) {
+static char* findBracketClose(char* p, char* brackets) {
     for (int count = 1; count > 0; count += (*p == *brackets ? 1 : -1))
-        if (!(p = strpbrk(++p, brackets)))
+        if (!(p = strpbrk(p + 1, brackets)))
             return NULL;
     return p;
 }
 
+static char* findTagClose(char* start) {
+    for (char* p = start; p; p = strpbrk(p + 1, ">\"'")) {
+        switch (p[0]) {
+            case '>': return p;
+            case '"': p = strchr(p + 1, '"'); break;
+            case '\'': p = strchr(p + 1, '\''); break;
+        }
+    }
+    return NULL;
+}
+
+static int isAutoLink(char* start, char* end, char* colon, char* atsign) {
+    for (char* p = start; p < end; p++)
+        if (isspace(p[0]) || iscntrl(p[0]))
+            return 0;
+    return colon || atsign;
+}
+
+static char* processTag(char* start, FILE* output) {
+    if (isspace(start[1]))
+        return printEscape(start, output);
+    char* end = findTagClose(start);
+    if (!end || end == start + 1)
+        return printEscape(start, output);
+    char* colon = memchr(start, ':', end - start);
+    char* atsign = memchr(start, '@', end - start);
+    if (!isAutoLink(start, end, colon, atsign))
+        return printRaw(start, end + 1, output);
+    fputs("<a href=\"", output);
+    if (atsign && !colon)
+        fputs("mailto:", output);
+    printRaw(start + 1, end, output);
+    fputs("\">", output);
+    printEscaped(start + 1, end, output);
+    fputs("</a>", output);
+    return end + 1;
+}
+
 static char* processLink(char* start, FILE* output) {
     char* title = start + 1;
-    char* titleEnd = findClose(start, "[]");
+    char* titleEnd = findBracketClose(start, "[]");
     if (titleEnd == NULL)
         return start;
     if (title[0] == '^') {
@@ -106,7 +118,7 @@ static char* processLink(char* start, FILE* output) {
     if (paren[0] != '(')
         return start;
     char* href = paren + 1;
-    char* hrefEnd = findClose(paren, "()");
+    char* hrefEnd = findBracketClose(paren, "()");
     if (hrefEnd == NULL)
         return start;
     fputs("<a href=\"", output);
@@ -121,12 +133,12 @@ static char* processImage(char* start, FILE* output) {
     if (start[1] != '[')
         return start;
     char* title = start + 2;
-    char* titleEnd = findClose(start + 1, "[]");
+    char* titleEnd = findBracketClose(start + 1, "[]");
     char* paren = titleEnd + 1;
     if (titleEnd == NULL || paren[0] != '(')
         return start;
     char* href = paren + 1;
-    char* hrefEnd = findClose(paren, "()");
+    char* hrefEnd = findBracketClose(paren, "()");
     if (hrefEnd == NULL)
         return start;
     fputs("<img src=\"", output);
