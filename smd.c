@@ -35,7 +35,7 @@ static char* getLine(FILE* input, int peek) {
 static char* skipPrefixes(char* line) {
     for (int i = 0; i < depth; i++) {
         char c = stack[i];
-        if (c == '>' && line[0] == '>')
+        if ((c == '>' || c == '=') && line[0] == c)
             line += line[1] == ' ' ? 2 : 1;
         if (strchr("*-+", c) && line[0] == ' ' && line[1] == ' ')
             line += 2;
@@ -63,8 +63,11 @@ static char* openBlocks(char* line, FILE* output) {
         char c = line ? line[0] : 0;
         switch (c) {
             case '>':
-                fputs("<blockquote>\n", output);
-                line += line[1] == ' ' ? 2 : 1;
+            case '=':
+                if (line[1] != ' ')
+                    return line;
+                fputs(c == '>' ? "<blockquote>\n" : "<aside>\n", output);
+                line += 2;
                 break;
             case '*':
             case '-':
@@ -91,6 +94,7 @@ static void closeLevel(char index, FILE* output) {
     for (unsigned char i = 0; i < depth - index; i++) {
         switch (stack[depth - i - 1]) {
             case '>': fputs("</blockquote>\n", output); break;
+            case '=': fputs("</aside>\n", output); break;
             case '*':
             case '-':
             case '+': fputs("</li>\n</ul>\n", output); break;
@@ -109,7 +113,8 @@ static char* closeBlocks(char* line, FILE* output) {
     for (; level < depth; level++) {
         switch (stack[level]) {
             case '>':
-                if (line[0] == stack[level]) {
+            case '=':
+                if (line[0] == stack[level] && strchr(" \r\n", line[1])) {
                     line += line[1] == ' ' ? 2 : 1;
                     continue;
                 }

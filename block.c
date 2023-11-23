@@ -145,8 +145,8 @@ static int processFootnote(char* line, FILE* output) {
 }
 
 static int isParagraphInterrupt(char* line) {
-    static char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", ">",
-        "| ", "# ", "## ", "### ", "#### ", "##### ", "###### "};
+    static char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", "> ",
+        "= ", "| ", "# ", "## ", "### ", "#### ", "##### ", "###### "};
     if (isBlank(line))
         return 1;
     for (size_t i = 0; i < sizeof(interrupts)/sizeof(char*); i++)
