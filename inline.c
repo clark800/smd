@@ -158,9 +158,12 @@ static char* processSpan(char* start, char* c, int intraword, int tight,
     for (; run; run = strchr(run + strspn(run, c), c[0])) {
         while (run && run[-1] == '\\')
             run = strchr(run + 1, c[0]);
-        if (run && strspn(run, c) == length && !(tight && isspace(run[-1])) &&
-                !(!intraword && isalnum(run[length])))
+        if (run && strspn(run, c) == length) {
+            if ((tight && isspace(run[-1])) ||
+                    (!intraword && isalnum(run[length])))
+                return printEscaped(start, start + length, output);
             break;
+        }
     }
     if (!run)
         return printEscaped(start, start + length, output);
