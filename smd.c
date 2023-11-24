@@ -23,38 +23,18 @@ Container containers[] = {
 };
 
 static Container getContainer(char c) {
-    if (isdigit(c))
-        c = '0';
     switch (c) {
         case '>': return containers[0];
         case '/': return containers[1];
         case '*': return containers[2];
         case '-': return containers[3];
         case '+': return containers[4];
-        case '0': return containers[5];
-        default: return (Container){0};
+        default: return isdigit(c) ? containers[5] : (Container){0};
     }
 }
 
 static inline int startsWith(char* string, char* prefix) {
     return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
-}
-
-static int isBlockOpener(char* line, Container container) {
-    if (isdigit(container.open[0]))
-        return isdigit(line[0]) && startsWith(line + 1, container.open + 1);
-    return startsWith(line, container.open);
-}
-
-static int getContinuationPrefixLength(char* line, Container container) {
-    if (!startsWith(line, container.prefix))
-        return -1;
-    int length = strlen(container.prefix);
-    if (line[length] == '\n' || line[length] == '\r')
-        return length;
-    if (startsWith(line + length, container.indent))
-        return length + strlen(container.indent);
-    return -1;
 }
 
 static char* getLine(FILE* input, int peek) {
@@ -104,6 +84,12 @@ int peek(void) {
     return line ? line[0] : EOF;
 }
 
+static int isBlockOpener(char* line, Container container) {
+    if (isdigit(container.open[0]))
+        return isdigit(line[0]) && startsWith(line + 1, container.open + 1);
+    return startsWith(line, container.open);
+}
+
 static char* openBlocks(char* line, FILE* output) {
     while (line) {
         Container container = getContainer(line[0]);
@@ -114,6 +100,17 @@ static char* openBlocks(char* line, FILE* output) {
         line += strlen(container.open);
     }
     return line;
+}
+
+static int getContinuationPrefixLength(char* line, Container container) {
+    if (!startsWith(line, container.prefix))
+        return -1;
+    int length = strlen(container.prefix);
+    if (line[length] == '\n' || line[length] == '\r')
+        return length;
+    if (startsWith(line + length, container.indent))
+        return length + strlen(container.indent);
+    return -1;
 }
 
 static void closeLevel(char index, FILE* output) {
