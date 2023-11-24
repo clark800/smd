@@ -23,6 +23,8 @@ Container containers[] = {
 };
 
 static Container getContainer(char c) {
+    if (isdigit(c))
+        c = '0';
     switch (c) {
         case '>': return containers[0];
         case '/': return containers[1];
@@ -106,19 +108,15 @@ int peek(void) {
     return line ? line[0] : EOF;
 }
 
-static char* openBlock(char* line, FILE* output) {
-    for (unsigned int i = 0; i < sizeof(containers)/sizeof(Container); i++) {
-        if (isBlockOpener(line, containers[i])) {
-            fputs(containers[i].opentags, output);
-            stack[depth++] = containers[i].open[0];
-            return line + strlen(containers[i].open);
-        }
-    }
-    return NULL;
-}
-
 static char* openBlocks(char* line, FILE* output) {
-    for (char* p = line; line && (p = openBlock(line, output)); line = p);
+    while (line) {
+        Container container = getContainer(line[0]);
+        if (!container.open || !isBlockOpener(line, container))
+            return line;
+        fputs(container.opentags, output);
+        stack[depth++] = container.open[0];
+        line += strlen(container.open);
+    }
     return line;
 }
 
