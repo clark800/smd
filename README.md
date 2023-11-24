@@ -4,11 +4,13 @@ smd
 `smd` is a renderer for _simplified markdown_, a variant of markdown that
 can be processed more quickly and easily than regular markdown.
 
-It is not a strict subset of markdown and does not aim to be,
-but overall it is very similar to markdown.
+You can write simplified markdown in such a way that it is compatible with
+standard markdown, and this intersection captures most of the expressiveness
+of markdown.
 
-The implementation is about 500 lines of C and it processes the input in a
-single pass, buffering only two lines at a time. It doesn't even use malloc.
+The implementation is ~500 lines of C and compiles to a ~66KB musl-static
+binary. It processes the input in a single pass, buffering only two lines
+at a time; it doesn't use malloc at all.
 
 It supports most of the features of markdown including:
 * Underline and hash headings (single line only)
@@ -55,6 +57,6 @@ Other minor/technical differences:
 Usage
 -----
 
-Install by running `sudo ./make install`. This requires a C compiler.
+Install by running `./make && sudo ./make install`. This requires a C compiler.
 
 Then pass markdown over stdin: `smd < filename.md`
