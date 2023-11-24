@@ -80,27 +80,25 @@ static char* getLine(FILE* input, int peek) {
     return result;
 }
 
-static char* skipPrefixes(char* line) {
+static char* skipContinuationPrefixes(char* line) {
     for (int i = 0; i < depth; i++) {
-        char c = stack[i];
-        if (c == '>' && line[0] == c)
-            line += line[1] == ' ' ? 2 : 1;
-        if (c == '/')
-            line += startsWith(line, "    ") ? 4 : (line[0] == '\t' ? 1 : 0);
-        if (strchr("*-+", c) && line[0] == ' ' && line[1] == ' ')
-            line += 2;
-        if (c == '0' && line[0] == ' ' && line[1] == ' ' && line[2] == ' ')
-            line += 3;
+        Container container = getContainer(stack[i]);
+        if (startsWith(line, container.premore))
+            line += strlen(container.premore);
+        if (startsWith(line, container.more))
+            line += strlen(container.more);
+        else if (strchr(container.altmore, line[0]))
+            line += (line[0] == '\n' || line[0] == '\r') ? 0 : 1;
     }
     return line;
 }
 
 char* readLine(void) {
-    return skipPrefixes(getLine(INPUT, 0));
+    return skipContinuationPrefixes(getLine(INPUT, 0));
 }
 
 char* peekLine(void) {
-    return skipPrefixes(getLine(INPUT, 1));
+    return skipContinuationPrefixes(getLine(INPUT, 1));
 }
 
 int peek(void) {
