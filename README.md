@@ -38,6 +38,7 @@ Other implementation differences:
 * All inline spans have the same precedence and are processed left to right
 * Inline span delimiter runs must be the same length for the start and end
 * Leading spaces less than 4 are not removed
+* Blockquote `>` must be followed by space or newline
 * List items and blockquotes always contain a paragraph tag
 * Tabs are not supported for list indentation
 * Spaces are not trimmed inside spans
