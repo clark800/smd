@@ -1,11 +1,21 @@
 #!/bin/sh
 
-"${CC-cc}" -std=c99 -Wpedantic -Wall -Wextra -Wshadow -Wcast-qual \
-    -Wmissing-prototypes -Wstrict-prototypes -Wredundant-decls \
-    -O2 $CPPFLAGS $CFLAGS $LDFLAGS -o smd *.c
+BIN="smd"
 
-if [ "$1" = "install" ]; then
+build() {
+    "${CC-cc}" -std=c99 -Wpedantic -Wall -Wextra -Wshadow -Wcast-qual \
+        -Wmissing-prototypes -Wstrict-prototypes -Wredundant-decls \
+        -O2 $CPPFLAGS $CFLAGS $LDFLAGS -o "$BIN" *.c
+}
+
+install() {
     PREFIX="${PREFIX:-/usr/local}"
     mkdir -p "$PREFIX/bin"
-    mv smd "$PREFIX/bin/"
-fi
+    cp "$BIN" "$PREFIX/bin/"
+}
+
+case "$1" in
+    "") build;;
+    install) install;;
+    *) exit 1;;
+esac
