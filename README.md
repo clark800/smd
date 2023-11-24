@@ -40,7 +40,8 @@ Other implementation differences:
 * Leading spaces less than 4 are not removed
 * Blockquote `>` must be followed by space or newline
 * List items and blockquotes always contain a paragraph tag
-* Tabs are not supported for list indentation
+* Tabs are not internally supported for container indentation
+  * Can convert tabs to spaces with `sed` and then pipe to `smd`
 * Spaces are not trimmed inside spans
 
 Other minor/technical differences:
