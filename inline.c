@@ -149,10 +149,11 @@ static char* processImage(char* start, FILE* output) {
     return hrefEnd + 1;
 }
 
-static char* processSpan(char* start, char* c, int intraword, int tight,
-        int process, char* openTag, char* closeTag, FILE* output) {
+static char* processSpan(char* start, char* c, size_t maxlen, int intraword,
+        int tight, int process, char* openTag, char* closeTag, FILE* output) {
     size_t length = strspn(start, c);
-    if ((tight && isspace(start[length])) || (!intraword && isalnum(start[-1])))
+    if (length > maxlen ||
+        (tight && isspace(start[length])) || (!intraword && isalnum(start[-1])))
         return printEscaped(start, start + length, output);
     char* run = strchr(start + length, c[0]);
     for (; run; run = strchr(run + strspn(run, c), c[0])) {
@@ -176,20 +177,20 @@ static char* processSpan(char* start, char* c, int intraword, int tight,
     return run + length;
 }
 
-static char* processInlineCode(char* start, FILE* output) {
-    return processSpan(start, "`", 1, 0, 0, "<code>", "</code>", output);
-}
-
-static char* processInlineMath(char* start, FILE* output) {
-    return processSpan(start, "$", 0, 1, 0, "\\(", "\\)", output);
-}
-
 static char* processEmphasis(char* start, FILE* output) {
-    return processSpan(start, "_", 1, 1, 1, "<em>", "</em>", output);
+    return processSpan(start, "_", 2, 1, 1, 1, "<em>", "</em>", output);
 }
 
 static char* processStrong(char* start, FILE* output) {
-    return processSpan(start, "*", 1, 1, 1, "<strong>", "</strong>", output);
+    return processSpan(start, "*", 2, 1, 1, 1, "<strong>", "</strong>", output);
+}
+
+static char* processInlineCode(char* start, FILE* output) {
+    return processSpan(start, "`", 2, 1, 0, 0, "<code>", "</code>", output);
+}
+
+static char* processInlineMath(char* start, FILE* output) {
+    return processSpan(start, "$", 1, 0, 1, 0, "\\(", "\\)", output);
 }
 
 void processInlines(char* start, char* end, FILE* output) {
@@ -202,13 +203,13 @@ void processInlines(char* start, char* end, FILE* output) {
         if (!brk || brk == end)
             return;
         switch (*brk) {
+            case '_': p = processEmphasis(brk, output); break;
+            case '*': p = processStrong(brk, output); break;
             case '`': p = processInlineCode(brk, output); break;
             case '$': p = processInlineMath(brk, output); break;
-            case '*': p = processStrong(brk, output); break;
-            case '_': p = processEmphasis(brk, output); break;
             case '<': p = processTag(brk, output); break;
-            case '!': p = processImage(brk, output); break;
             case '[': p = processLink(brk, output); break;
+            case '!': p = processImage(brk, output); break;
             case '\\': p = printBackslash(brk, output); break;
         }
         if (p == brk)
