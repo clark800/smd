@@ -19,7 +19,7 @@ Container containers[] = {
     {"* ", "", "  ", "\t", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
     {"- ", "", "  ", "\t", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
     {"+ ", "", "  ", "\t", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
-    {"0. ", "", "  ", "\t", "<ol>\n<li>\n", "</li>\n<li>\n", "</li>\n</ol>\n"}
+    {"0. ", "", "   ", "\t", "<ol>\n<li>\n", "</li>\n<li>\n", "</li>\n</ol>\n"}
 };
 
 static Container getContainer(char c) {
@@ -89,7 +89,7 @@ static char* skipPrefixes(char* line) {
             line += startsWith(line, "    ") ? 4 : (line[0] == '\t' ? 1 : 0);
         if (strchr("*-+", c) && line[0] == ' ' && line[1] == ' ')
             line += 2;
-        if (c == '.' && line[0] == ' ' && line[1] == ' ' && line[2] == ' ')
+        if (c == '0' && line[0] == ' ' && line[1] == ' ' && line[2] == ' ')
             line += 3;
     }
     return line;
