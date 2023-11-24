@@ -10,16 +10,16 @@ static unsigned char depth = 0;
 static FILE *INPUT = NULL;
 
 typedef struct {
-    char *open, *premore, *more, *altmore, *opentags, *reopentags, *closetags;
+    char *open, *prefix, *indent, *opentags, *reopentags, *closetags;
 } Container;
 
 Container containers[] = {
-    {"> ", ">", " ", "\t\r\n", "<blockquote>\n", NULL, "</blockquote>\n"},
-    {"/// ", "", "    ", "\t\r\n", "<aside>\n", NULL, "</aside>\n"},
-    {"* ", "", "  ", "\t", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
-    {"- ", "", "  ", "\t", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
-    {"+ ", "", "  ", "\t", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
-    {"0. ", "", "   ", "\t", "<ol>\n<li>\n", "</li>\n<li>\n", "</li>\n</ol>\n"}
+    {"> ", ">", " ", "<blockquote>\n", NULL, "</blockquote>\n"},
+    {"/// ", "", "    ", "<aside>\n", NULL, "</aside>\n"},
+    {"* ", "", "  ", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
+    {"- ", "", "  ", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
+    {"+ ", "", "  ", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
+    {"0. ", "", "   ", "<ol>\n<li>\n", "</li>\n<li>\n", "</li>\n</ol>\n"}
 };
 
 static Container getContainer(char c) {
@@ -47,15 +47,13 @@ static int isBlockOpener(char* line, Container container) {
 }
 
 static int getContinuationPrefixLength(char* line, Container container) {
-    int length = 0;
-    if (!startsWith(line, container.premore))
+    if (!startsWith(line, container.prefix))
         return -1;
-    length += strlen(container.premore);
-    if (startsWith(line + length, container.more))
-        return length + strlen(container.more);
-    char c = line[length];
-    if (strchr(container.altmore, c))
-        return length + ((c == '\n' || c == '\r') ? 0 : 1);
+    int length = strlen(container.prefix);
+    if (line[length] == '\n' || line[length] == '\r')
+        return length;
+    if (startsWith(line + length, container.indent))
+        return length + strlen(container.indent);
     return -1;
 }
 
@@ -85,12 +83,10 @@ static char* getLine(FILE* input, int peek) {
 static char* skipContinuationPrefixes(char* line) {
     for (int i = 0; i < depth; i++) {
         Container container = getContainer(stack[i]);
-        if (startsWith(line, container.premore))
-            line += strlen(container.premore);
-        if (startsWith(line, container.more))
-            line += strlen(container.more);
-        else if (strchr(container.altmore, line[0]))
-            line += (line[0] == '\n' || line[0] == '\r') ? 0 : 1;
+        if (startsWith(line, container.prefix))
+            line += strlen(container.prefix);
+        if (startsWith(line, container.indent))
+            line += strlen(container.indent);
     }
     return line;
 }
