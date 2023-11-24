@@ -9,8 +9,52 @@ static char stack[256] = {0};
 static unsigned char depth = 0;
 static FILE *INPUT = NULL;
 
-static int startsWith(char* string, char* prefix) {
+typedef struct {
+    char *open, *premore, *more, *altmore, *opentags, *reopentags, *closetags;
+} Container;
+
+Container containers[] = {
+    {"> ", ">", " ", "\t\r\n", "<blockquote>\n", NULL, "</blockquote>\n"},
+    {"/// ", "", "    ", "\t\r\n", "<aside>\n", NULL, "</aside>\n"},
+    {"* ", "", "  ", "\t", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
+    {"- ", "", "  ", "\t", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
+    {"+ ", "", "  ", "\t", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
+    {"0. ", "", "  ", "\t", "<ol>\n<li>\n", "</li>\n<li>\n", "</li>\n</ol>\n"}
+};
+
+static Container getContainer(char c) {
+    switch (c) {
+        case '>': return containers[0];
+        case '/': return containers[1];
+        case '*': return containers[2];
+        case '-': return containers[3];
+        case '+': return containers[4];
+        case '0': return containers[5];
+        default: return (Container){0};
+    }
+}
+
+static inline int startsWith(char* string, char* prefix) {
     return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
+}
+
+static int isBlockOpener(char* line, Container container) {
+    if (isdigit(container.open[0]))
+        return isdigit(line[0]) && startsWith(line + 1, container.open + 1);
+    return startsWith(line, container.open);
+}
+
+static int getContinuationPrefixLength(char* line, Container container) {
+    int length = 0;
+    if (!startsWith(line, container.premore))
+        return -1;
+    length += strlen(container.premore);
+    if (startsWith(line + length, container.more))
+        return length + strlen(container.more);
+    char c = line[length];
+    if (strchr(container.altmore, c))
+        return length + ((c == '\n' || c == '\r') ? 0 : 1);
+    return -1;
 }
 
 static char* getLine(FILE* input, int peek) {
@@ -64,104 +108,46 @@ int peek(void) {
     return line ? line[0] : EOF;
 }
 
-static char* openBlocks(char* line, FILE* output) {
-    while(1) {
-        char c = line ? line[0] : 0;
-        switch (c) {
-            case '>':
-                if (startsWith(line, "> ")) {
-                    fputs("<blockquote>\n", output);
-                    line += 2;
-                    break;
-                }
-                return line;
-            case '/':
-                if (startsWith(line, "/// ")) {
-                    fputs("<aside>\n", output);
-                    line += 4;
-                    break;
-                }
-                return line;
-            case '*':
-            case '-':
-            case '+':
-                if (line[1] == ' ') {
-                    fputs("<ul>\n<li>\n", output);
-                    line += 2;
-                    break;
-                }
-                return line;
-           default:
-                if (isdigit(c) && line[1] == '.' && line[2] == ' ') {
-                    c = '.';
-                    fputs("<ol>\n<li>\n", output);
-                    line += 3;
-                    break;
-                }
-                return line;
+static char* openBlock(char* line, FILE* output) {
+    for (unsigned int i = 0; i < sizeof(containers)/sizeof(Container); i++) {
+        if (isBlockOpener(line, containers[i])) {
+            fputs(containers[i].opentags, output);
+            stack[depth++] = containers[i].open[0];
+            return line + strlen(containers[i].open);
         }
-        stack[depth++] = c;
     }
+    return NULL;
+}
+
+static char* openBlocks(char* line, FILE* output) {
+    for (char* p = line; line && (p = openBlock(line, output)); line = p);
+    return line;
 }
 
 static void closeLevel(char index, FILE* output) {
-    for (unsigned char i = 0; i < depth - index; i++) {
-        switch (stack[depth - i - 1]) {
-            case '>': fputs("</blockquote>\n", output); break;
-            case '/': fputs("</aside>\n", output); break;
-            case '*':
-            case '-':
-            case '+': fputs("</li>\n</ul>\n", output); break;
-            case '.': fputs("</li>\n</ol>\n", output); break;
-        }
-    }
+    for (unsigned char i = 0; i < depth - index; i++)
+        fputs(getContainer(stack[depth - i - 1]).closetags, output);
     depth = index;
 }
 
 static char* closeBlocks(char* line, FILE* output) {
-    unsigned char level = 0;
     if (line == NULL) {
         closeLevel(0, output);
         return NULL;
     }
-    for (; level < depth; level++) {
-        switch (stack[level]) {
-            case '>':
-                if (line[0] == stack[level] && strchr(" \r\n", line[1])) {
-                    line += line[1] == ' ' ? 2 : 1;
-                    continue;
-                }
-                break;
-            case '/':
-                if (startsWith(line, "    ") || strchr("\t\r\n", line[0])) {
-                    line += line[0] == ' ' ? 4 : (line[0] == '\t' ? 1 : 0);
-                    continue;
-                }
-                break;
-            case '*':
-            case '-':
-            case '+':
-                if (line[0] == stack[level] && line[1] == ' ') {
-                    closeLevel(++level, output);
-                    fputs("</li>\n<li>\n", output);
-                    return line + 2;
-                } else if (line[0] == ' ' && line[1] == ' ') {
-                    line += 2;
-                    continue;
-                }
-                break;
-            case '.':
-                if (isdigit(line[0]) && line[1] == '.' && line[2] == ' ') {
-                    closeLevel(++level, output);
-                    fputs("</li>\n<li>\n", output);
-                    return line + 3;
-                } else if (line[0] == ' ' && line[1] == ' ' && line[2] == ' ') {
-                    line += 3;
-                    continue;
-                }
+    for (unsigned char level = 0; level < depth; level++) {
+        Container container = getContainer(stack[level]);
+        if (container.reopentags && isBlockOpener(line, container)) {
+            closeLevel(level + 1, output);
+            fputs(container.reopentags, output);
+            return line + strlen(container.open);
         }
-        closeLevel(level, output);
-        return line;
+        int length = getContinuationPrefixLength(line, container);
+        if (length < 0) {
+            closeLevel(level, output);
+            return line;
+        }
+        line += length;
     }
     return line;
 }
