@@ -25,7 +25,8 @@ It supports most of the features of markdown including:
 It also supports these extensions:
 * Mathjax spans and blocks with `$` and `$$`
 * Asterisk footnote links (`[^id]` and `[^id]: footnote`)
-* Tables
+* Tables (`| a | b |`)
+* Description lists (single line only: `= name: value`)
 * Aside containers (`/// ` until next non-indented line)
 
 Markdown features that are not supported:

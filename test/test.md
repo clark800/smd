@@ -118,4 +118,10 @@ fenced
 | d | \|e | f |
 
 
+Post Title
+==========
+= published: 2023-11-23
+= updated: 2023-11-23
+= tags: markdown, smd
+
 [^foot]: My footnote

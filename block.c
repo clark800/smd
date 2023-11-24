@@ -95,6 +95,26 @@ static void processTable(char* line, FILE* output) {
     fputs("</tbody>\n</table>\n", output);
 }
 
+static void processDescriptionItem(char* line, FILE* output) {
+    char* separator = strchr(line, ':');
+    if (!separator)
+        return;
+    fputs("<dt>\n", output);
+    processInlines(skip(line + 2, " \t"), rskip(separator, " \t"), output);
+    fputs("\n</dt>\n<dd>\n", output);
+    char* value = rtrim(skip(separator + 1, " \t"), " \t\r\n");
+    processInlines(value, NULL, output);
+    fputs("\n</dd>\n", output);
+}
+
+static void processDescriptionList(char* line, FILE* output) {
+    fputs("<dl>\n", output);
+    processDescriptionItem(line, output);
+    while (startsWith(peekLine(), "= "))
+        processDescriptionItem(readLine(), output);
+    fputs("</dl>\n", output);
+}
+
 static void printHeading(char* title, int level, FILE* output) {
     char openTag[] = "<h0>";
     char closeTag[] = "</h0>\n";
@@ -143,7 +163,7 @@ static int processFootnote(char* line, FILE* output) {
 
 static int isParagraphInterrupt(char* line) {
     static char* interrupts[] = {"$$", "```", "---", "* ", "- ", "+ ", "> ",
-        "/// ", "| ", "# ", "## ", "### ", "#### ", "##### ", "###### "};
+        "/// ", "= ", "| ", "# ", "## ", "### ", "#### ", "##### ", "###### "};
     if (!line || isBlankLine(line))
         return 1;
     for (size_t i = 0; i < sizeof(interrupts)/sizeof(char*); i++)
@@ -175,6 +195,8 @@ void processBlock(char* line, FILE* output) {
         processMathBlock(line, output);
     else if (startsWith(line, "| "))
         processTable(line, output);
+    else if (startsWith(line, "= "))
+        processDescriptionList(line, output);
     else {
         if (processHeading(line, output))
             return;
