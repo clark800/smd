@@ -43,7 +43,7 @@ Other implementation differences:
 * Blockquote `>` must be followed by space or newline
 * List items and blockquotes always contain a paragraph tag
 * Tabs are not internally supported for container indentation
-  * Can convert tabs to spaces with `sed` and then pipe to `smd`
+  * To use tabs for container indentation, use `expand -t 4 <file> | smd`
 * Spaces are not trimmed inside spans
 
 Other minor/technical differences:
