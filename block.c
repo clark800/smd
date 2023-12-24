@@ -72,24 +72,28 @@ static void processMathBlock(char* line, FILE* output) {
 
 static void processTableRow(char* line, int header, FILE* output) {
     char* p = line + 1;
-    if (isBlankLine(skip(p, " \t|-:")))
-        return;  // ignore divider row
-    fputs("<tr>", output);
+    fputs("<tr>\n", output);
     for (char* end = p; (end = strchr(end + 1, '|'));) {
         if (end[-1] == '\\')
             continue;
         fputs(header ? "<th>" : "<td>", output);
         processInlines(skip(p, " \t"), rskip(end, " \t"), output);
-        fputs(header ? "</th>" : "</td>", output);
+        fputs(header ? "</th>\n" : "</td>\n", output);
         p = end + 1;
     }
     fputs("</tr>\n", output);
 }
 
 static void processTable(char* line, FILE* output) {
-    fputs("<table>\n<thead>\n", output);
-    processTableRow(line, 1, output);
-    fputs("</thead>\n<tbody>\n", output);
+    char* nextLine = peekLine();
+    int divider = nextLine[0] == '|' && isBlankLine(skip(nextLine, " |-:"));
+    fputs("<table>\n", output);
+    fputs(divider ? "<thead>\n" : "<tbody>\n", output);
+    processTableRow(line, divider, output);
+    if (divider) {
+        fputs("</thead>\n<tbody>\n", output);
+        readLine();
+    }
     while (startsWith(peekLine(), "|"))
         processTableRow(readLine(), 0, output);
     fputs("</tbody>\n</table>\n", output);
