@@ -86,7 +86,8 @@ static void processTableRow(char* line, int header, FILE* output) {
 
 static void processTable(char* line, FILE* output) {
     char* nextLine = peekLine();
-    int divider = nextLine[0] == '|' && isBlankLine(skip(nextLine, " |-:"));
+    int divider = startsWith(nextLine, "|") &&
+                  isBlankLine(skip(nextLine, " |-:"));
     fputs("<table>\n", output);
     fputs(divider ? "<thead>\n" : "<tbody>\n", output);
     processTableRow(line, divider, output);
