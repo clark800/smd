@@ -101,11 +101,12 @@ static void processTable(char* line, FILE* output) {
 }
 
 static void processDescriptionItem(char* line, FILE* output) {
+    char* key = skip(line + 1, " \t");
     char* separator = strchr(line, ':');
-    if (!separator)
+    if (!separator || key[0] == '.')
         return;
     fputs("<dt>\n", output);
-    processInlines(skip(line + 2, " \t"), rskip(separator, " \t"), output);
+    processInlines(key, rskip(separator, " \t"), output);
     fputs("\n</dt>\n<dd>\n", output);
     char* value = rtrim(skip(separator + 1, " \t"), " \t\r\n");
     processInlines(value, NULL, output);
