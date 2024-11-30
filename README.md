@@ -47,7 +47,7 @@ Other implementation differences:
 * Spaces are not trimmed inside spans
 
 Other minor/technical differences:
-* Lines are limited to 4094 characters
+* Lines are limited to 4094 bytes
 * Simpler rules for span delimiter adjacencies
 * Blocks are delimited by a prefix rather than a pattern
 * Trailing characters after code fences and thematic breaks are discarded
