@@ -29,7 +29,7 @@ It also supports these extensions:
 * Asterisk footnote links (`[^id]` and `[^id]: footnote`)
 * Tables (`| a | b |`) (column alignment colons are ignored)
 * Description lists (single line only: `= name: value`)
-* Aside containers (`/// ` until next non-indented line)
+* Aside containers (fenced by `:::`)
 
 Markdown features that are not supported:
 * Reference-style links (can use footnote links instead)

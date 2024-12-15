@@ -15,7 +15,7 @@ typedef struct {
 
 Container containers[] = {
     {"> ", ">", " ", "<blockquote>\n", NULL, "</blockquote>\n"},
-    {"/// ", "", "    ", "<aside>\n", NULL, "</aside>\n"},
+    {":::", "", "", "<aside>\n", NULL, "</aside>\n"},
     {"* ", "", "  ", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
     {"- ", "", "  ", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
     {"+ ", "", "  ", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
@@ -25,7 +25,7 @@ Container containers[] = {
 static Container getContainer(char c) {
     switch (c) {
         case '>': return containers[0];
-        case '/': return containers[1];
+        case ':': return containers[1];
         case '*': return containers[2];
         case '-': return containers[3];
         case '+': return containers[4];
@@ -35,6 +35,18 @@ static Container getContainer(char c) {
 
 static inline int startsWith(char* string, char* prefix) {
     return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
+}
+
+static inline int isLineEnd(char c) {
+    return c == '\n' || c == '\r' || c == 0;
+}
+
+static inline int isFence(Container container) {
+    return container.prefix[0] == 0 && container.indent[0] == 0;
+}
+
+static inline int isFenceClose(char* line, char* close) {
+    return startsWith(line, close) && isLineEnd(line[strlen(close)]);
 }
 
 static char* getLine(FILE* input, int peek) {
@@ -106,8 +118,10 @@ static int getContinuationPrefixLength(char* line, Container container) {
     if (!startsWith(line, container.prefix))
         return -1;
     int length = strlen(container.prefix);
-    if (line[length] == '\n' || line[length] == '\r')
-        return length;
+    if (isLineEnd(line[length]))
+        return length; // don't require indent if line is empty after prefix
+    if (isFence(container) && isFenceClose(line, container.open))
+        return -1;
     if (startsWith(line + length, container.indent))
         return length + strlen(container.indent);
     return -1;
@@ -134,7 +148,7 @@ static char* closeBlocks(char* line, FILE* output) {
         int length = getContinuationPrefixLength(line, container);
         if (length < 0) {
             closeLevel(level, output);
-            return line;
+            return isFence(container) ? "\n" : line;
         }
         line += length;
     }
