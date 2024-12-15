@@ -114,6 +114,8 @@ static char* openBlocks(char* line, FILE* output) {
         fputs(container.opentags, output);
         stack[depth++] = container.open[0];
         line += strlen(container.open);
+        if (isFence(container))
+            line += strspn(line, " \t");
         if (container.headtags) {
             processInlines(line + strspn(line, " \t"), NULL, output);
             fputs(container.headtags, output);
