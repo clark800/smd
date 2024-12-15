@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "read.h"
+#include "inline.h"
 #include "block.h"
 
 static char stack[256] = {0};
@@ -10,26 +11,29 @@ static unsigned char depth = 0;
 static FILE *INPUT = NULL;
 
 typedef struct {
-    char *open, *prefix, *indent, *opentags, *reopentags, *closetags;
+    // headtags are inserted after the first line of the container; if headtags
+    // is not NULL, the first line will be processed with processInlines
+    char *open, *prefix, *indent, *opentags, *headtags, *reopentags, *closetags;
 } Container;
 
 Container containers[] = {
-    {"> ", ">", " ", "<blockquote>\n", NULL, "</blockquote>\n"},
-    {":::", "", "", "<aside>\n", NULL, "</aside>\n"},
-    {"* ", "", "  ", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
-    {"- ", "", "  ", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
-    {"+ ", "", "  ", "<ul>\n<li>\n", "</li>\n<li>\n", "</li>\n</ul>\n"},
-    {"0. ", "", "   ", "<ol>\n<li>\n", "</li>\n<li>\n", "</li>\n</ol>\n"}
+    {"0. ", "", "   ", "<ol>\n<li>\n", NULL, "</li>\n<li>\n", "</li>\n</ol>\n"},
+    {"* ", "", "  ", "<ul>\n<li>\n", NULL, "</li>\n<li>\n", "</li>\n</ul>\n"},
+    {"- ", "", "  ", "<ul>\n<li>\n", NULL, "</li>\n<li>\n", "</li>\n</ul>\n"},
+    {"> ", ">", " ", "<blockquote>\n", NULL, NULL, "</blockquote>\n"},
+    {":::", "", "", "<aside>\n", NULL, NULL, "</aside>\n"},
+    {"+++", "", "", "<details>\n<summary>\n", "</summary>\n", NULL,
+        "</details>\n"}
 };
 
 static Container getContainer(char c) {
     switch (c) {
-        case '>': return containers[0];
-        case ':': return containers[1];
-        case '*': return containers[2];
-        case '-': return containers[3];
-        case '+': return containers[4];
-        default: return isdigit(c) ? containers[5] : (Container){0};
+        case '*': return containers[1];
+        case '-': return containers[2];
+        case '>': return containers[3];
+        case ':': return containers[4];
+        case '+': return containers[5];
+        default: return isdigit(c) ? containers[0] : (Container){0};
     }
 }
 
@@ -110,6 +114,11 @@ static char* openBlocks(char* line, FILE* output) {
         fputs(container.opentags, output);
         stack[depth++] = container.open[0];
         line += strlen(container.open);
+        if (container.headtags) {
+            processInlines(line + strspn(line, " \t"), NULL, output);
+            fputs(container.headtags, output);
+            return "\n";
+        }
     }
     return line;
 }
