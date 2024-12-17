@@ -15,7 +15,7 @@ at a time; it doesn't use malloc at all.
 It supports most of the features of markdown including:
 * Underline and hash headings (single line only)
 * Inline code, indented code, and code fences (backticks only)
-* Unordered lists (including nesting)
+* Unordered lists (including nesting, `*` and `-` only)
 * Ordered lists (including nesting, but must be a single digit)
 * Blockquotes (including nesting)
 * Links, autolinks, and images (but title field not supported (for tooltips))
