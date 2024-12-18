@@ -23,6 +23,7 @@ Container containers[] = {
     {"> ", ">", " ", "<blockquote>\n", NULL, NULL, "</blockquote>\n"},
     {"\"\"\"", "", "", "<blockquote>\n", NULL, NULL, "</blockquote>\n"},
     {":::", "", "", "<aside>\n", NULL, NULL, "</aside>\n"},
+    {"!!!", "", "", "<aside class=\"admonition\">\n", NULL, NULL, "</aside>\n"},
     {"+++", "", "", "<details>\n<summary>\n", "</summary>\n", NULL,
         "</details>\n"}
 };
@@ -34,7 +35,8 @@ static Container getContainer(char c) {
         case '>': return containers[3];
         case '"': return containers[4];
         case ':': return containers[5];
-        case '+': return containers[6];
+        case '!': return containers[6];
+        case '+': return containers[7];
         default: return isdigit(c) ? containers[0] : (Container){0};
     }
 }

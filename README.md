@@ -30,7 +30,7 @@ It also supports these extensions:
 * Tables (`| a | b |`) (column alignment colons are ignored)
 * Description lists (single line only: `= name: value`)
 * Blockquote containers (fenced by `"""`)
-* Aside containers (fenced by `:::`)
+* Aside containers (fenced by `:::` and `!!!`)
 * Collapsible details containers (fenced by `+++`, first line is summary)
 
 Markdown features that are not supported:
