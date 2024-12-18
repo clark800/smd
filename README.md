@@ -29,6 +29,7 @@ It also supports these extensions:
 * Asterisk footnote links (`[^id]` and `[^id]: footnote`)
 * Tables (`| a | b |`) (column alignment colons are ignored)
 * Description lists (single line only: `= name: value`)
+* Blockquote containers (fenced by `"""`)
 * Aside containers (fenced by `:::`)
 * Collapsible details containers (fenced by `+++`, first line is summary)
 

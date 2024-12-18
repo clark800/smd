@@ -103,8 +103,12 @@ Paragraph
 
 +++ Summary
 Details
-> Blockquote
-> Second line
+"""
+Line 1
+
+Line 2
+"""
+After
 +++
 
 > Blockquote

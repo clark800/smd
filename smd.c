@@ -21,6 +21,7 @@ Container containers[] = {
     {"* ", "", "  ", "<ul>\n<li>\n", NULL, "</li>\n<li>\n", "</li>\n</ul>\n"},
     {"- ", "", "  ", "<ul>\n<li>\n", NULL, "</li>\n<li>\n", "</li>\n</ul>\n"},
     {"> ", ">", " ", "<blockquote>\n", NULL, NULL, "</blockquote>\n"},
+    {"\"\"\"", "", "", "<blockquote>\n", NULL, NULL, "</blockquote>\n"},
     {":::", "", "", "<aside>\n", NULL, NULL, "</aside>\n"},
     {"+++", "", "", "<details>\n<summary>\n", "</summary>\n", NULL,
         "</details>\n"}
@@ -31,8 +32,9 @@ static Container getContainer(char c) {
         case '*': return containers[1];
         case '-': return containers[2];
         case '>': return containers[3];
-        case ':': return containers[4];
-        case '+': return containers[5];
+        case '"': return containers[4];
+        case ':': return containers[5];
+        case '+': return containers[6];
         default: return isdigit(c) ? containers[0] : (Container){0};
     }
 }
