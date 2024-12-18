@@ -5,11 +5,11 @@
 #include "read.h"
 #include "block.h"
 
-static int startsWith(char* string, char* prefix) {
+int startsWith(char* string, char* prefix) {
     return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
 }
 
-static char* skip(char* start, char* characters) {
+char* skip(char* start, char* characters) {
     return start == NULL ? NULL : start + strspn(start, characters);
 }
 

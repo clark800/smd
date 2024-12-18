@@ -37,10 +37,6 @@ static Container getContainer(char c) {
     }
 }
 
-static inline int startsWith(char* string, char* prefix) {
-    return string != NULL && strncmp(prefix, string, strlen(prefix)) == 0;
-}
-
 static inline int isLineEnd(char c) {
     return c == '\n' || c == '\r' || c == 0;
 }
@@ -115,9 +111,9 @@ static char* openBlocks(char* line, FILE* output) {
         stack[depth++] = container.open[0];
         line += strlen(container.open);
         if (isFence(container))
-            line += strspn(line, " \t");
+            line = skip(line, " \t");
         if (container.headtags) {
-            processInlines(line + strspn(line, " \t"), NULL, output);
+            processInlines(skip(line, " \t"), NULL, output);
             fputs(container.headtags, output);
             return "\n";
         }
